@@ -51,10 +51,10 @@ export function HistoryItem({ entry, isActive, onSelect, onDelete }: HistoryItem
         <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">
           {entry.imageName}
         </p>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          <span className="text-[10px] text-gray-400 dark:text-gray-500">
-            {formatDate(entry.timestamp)}
-          </span>
+        <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 block">
+          {formatDate(entry.timestamp)}
+        </span>
+        <div className="flex items-center gap-1.5 mt-1">
           <span className="text-[9px] font-semibold uppercase tracking-wide px-1 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
             {entry.analysis?.totalThreats ?? 0} ameaças
           </span>

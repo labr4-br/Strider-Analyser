@@ -32,6 +32,7 @@ export function ImagePreview({
           alt={displayName}
           className="w-full h-80 lg:h-[420px] object-contain bg-gray-50 dark:bg-gray-950"
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
         <button
           onClick={onRemove}
           disabled={isAnalyzing}
