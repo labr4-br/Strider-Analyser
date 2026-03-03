@@ -25,6 +25,8 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+
+
 app.use('/api/analyze', analyzeRouter);
 app.use('/api/report', reportRouter);
 app.use('/api/chat', chatRouter);

@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { Threat } from '../schemas/stride';
 
 interface RiskMatrixProps {
@@ -22,13 +21,8 @@ export function RiskMatrix({ threats }: RiskMatrixProps) {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="mb-6"
-    >
-      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+    <div>
+      <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
         Matriz de Risco
       </h3>
 
@@ -88,6 +82,6 @@ export function RiskMatrix({ threats }: RiskMatrixProps) {
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-100 dark:bg-orange-900/30 inline-block" /> Alto (10-15)</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-100 dark:bg-red-900/30 inline-block" /> Critico (16-25)</span>
       </div>
-    </motion.div>
+    </div>
   );
 }

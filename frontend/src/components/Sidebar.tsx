@@ -36,10 +36,21 @@ export function Sidebar({ open, entries, activeId, onSelect, onDelete, onClear, 
             animate={{ x: 0 }}
             exit={{ x: -288 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed md:relative z-30 md:z-auto top-0 md:top-auto left-0 h-full md:h-auto w-72 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col overflow-hidden"
+            className="fixed z-30 top-10 left-0 h-[calc(100vh-2.5rem)] w-72 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col overflow-hidden"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-200 dark:border-gray-800">
+            {/* New analysis button — top */}
+            <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-800">
+              <button
+                onClick={onNew}
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Nova Análise
+              </button>
+            </div>
+
+            {/* History header */}
+            <div className="flex items-center justify-between px-3 py-1.5">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                 Histórico {entries.length > 0 && `(${entries.length})`}
               </span>
@@ -52,17 +63,6 @@ export function Sidebar({ open, entries, activeId, onSelect, onDelete, onClear, 
                   <Trash className="w-3 h-3" />
                 </button>
               )}
-            </div>
-
-            {/* New analysis button */}
-            <div className="px-2 pt-2">
-              <button
-                onClick={onNew}
-                className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Nova Análise
-              </button>
             </div>
 
             {/* Entries list */}

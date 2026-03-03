@@ -59,7 +59,7 @@ export function StrideCard({ category, index }: StrideCardProps) {
       {/* Summary */}
       {category.summary && (
         <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-          {category.summary}
+          {category.summary.replace(/^#{1,4}\s+/gm, '')}
         </p>
       )}
 

@@ -1,9 +1,22 @@
 import { Router, Request, Response } from 'express';
-import { streamText, convertToModelMessages, UIMessage } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { UIMessage, pipeUIMessageStreamToResponse } from 'ai';
+import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain';
 import { StrideAnalysis } from '../schemas/stride';
+import { createSecurityAdvisorGraph } from '../agents/security-advisor';
 
 const router = Router();
+
+// Event types the frontend useChat can safely consume
+const ALLOWED_TYPES = new Set([
+  'start',
+  'finish',
+  'text-start',
+  'text-delta',
+  'text-end',
+  'start-step',
+  'finish-step',
+  'error',
+]);
 
 router.post('/', async (req: Request, res: Response) => {
   const { messages, analysisContext } = req.body as {
@@ -16,23 +29,44 @@ router.post('/', async (req: Request, res: Response) => {
     return;
   }
 
-  const systemPrompt = `Você é um especialista em cibersegurança. O usuário realizou uma análise de ameaças STRIDE e agora quer fazer perguntas de follow-up.
+  if (!analysisContext) {
+    res.status(400).json({ error: 'Analysis context required' });
+    return;
+  }
 
-Contexto da análise STRIDE realizada:
-${JSON.stringify(analysisContext, null, 2)}
+  try {
+    const agent = createSecurityAdvisorGraph(analysisContext);
+    const baseMessages = await toBaseMessages(messages);
+    const langchainStream = await agent.stream(
+      { messages: baseMessages },
+      { streamMode: ['messages'] },
+    );
 
-Responda em português do Brasil. Seja específico e prático nas recomendações.
-Quando solicitado código, forneça exemplos completos e funcionais.`;
+    const rawStream = toUIMessageStream(langchainStream);
 
-  const modelMessages = await convertToModelMessages(messages);
+    // Filter out tool-related events that the frontend doesn't handle
+    const filteredStream = rawStream.pipeThrough(
+      new TransformStream({
+        transform(chunk, controller) {
+          if (chunk && typeof chunk === 'object' && 'type' in chunk) {
+            if (ALLOWED_TYPES.has(chunk.type as string)) {
+              controller.enqueue(chunk);
+            }
+          }
+        },
+      }),
+    );
 
-  const result = streamText({
-    model: openai('gpt-4o'),
-    system: systemPrompt,
-    messages: modelMessages,
-  });
-
-  result.pipeUIMessageStreamToResponse(res);
+    pipeUIMessageStreamToResponse({
+      stream: filteredStream,
+      response: res,
+    });
+  } catch (err) {
+    console.error('Chat agent error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
 });
 
 export default router;

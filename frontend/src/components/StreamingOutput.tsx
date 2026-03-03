@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Eye, ChevronDown } from 'lucide-react';
 import { StrideAnalysis } from '../schemas/stride';
+import { MarkdownText } from './MarkdownText';
 
 interface StreamingOutputProps {
   analysis: Partial<StrideAnalysis> | null;
@@ -52,7 +53,20 @@ function AccordionPanel({
 }
 
 export function StreamingOutput({ analysis, isStreaming }: StreamingOutputProps) {
-  const [openPanel, setOpenPanel] = useState<'arch' | 'analysis'>('analysis');
+  const [archOpen, setArchOpen] = useState(false);
+  const [analysisOpen, setAnalysisOpen] = useState(false);
+
+  // Auto-open the panel that is currently receiving data
+  useEffect(() => {
+    if (!isStreaming) return;
+    if (!analysis?.overviewSummary) {
+      // Still streaming architecture description
+      setArchOpen(true);
+    } else {
+      // Streaming analysis results
+      setAnalysisOpen(true);
+    }
+  }, [isStreaming, !!analysis?.architectureDescription, !!analysis?.overviewSummary]);
 
   const categories = analysis?.categories ?? [];
   const totalThreats = categories.reduce((sum, cat) => sum + (cat.threats?.length ?? 0), 0);
@@ -86,14 +100,12 @@ export function StreamingOutput({ analysis, isStreaming }: StreamingOutputProps)
         ) : hasArchDescription ? (
           <span className="text-xs text-green-400">Concluído</span>
         ) : null}
-        open={openPanel === 'arch'}
-        onToggle={() => setOpenPanel(openPanel === 'arch' ? 'analysis' : 'arch')}
+        open={archOpen}
+        onToggle={() => setArchOpen((o) => !o)}
       >
         <div className="px-5 py-4 bg-gray-900 dark:bg-gray-950 max-h-64 overflow-y-auto scrollbar-thin">
           {hasArchDescription ? (
-            <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-line">
-              {analysis.architectureDescription}
-            </p>
+            <MarkdownText text={analysis.architectureDescription!} className="text-gray-300" />
           ) : isStreamingArch ? (
             <span className="inline-block w-1.5 h-3 bg-indigo-400 animate-pulse rounded-sm" />
           ) : (
@@ -106,17 +118,17 @@ export function StreamingOutput({ analysis, isStreaming }: StreamingOutputProps)
         title="Resultado da Análise"
         icon={FileText}
         badge={statusBadge}
-        open={openPanel === 'analysis'}
-        onToggle={() => setOpenPanel(openPanel === 'analysis' ? 'arch' : 'analysis')}
+        open={analysisOpen}
+        onToggle={() => setAnalysisOpen((o) => !o)}
       >
         <div className="px-5 py-4 bg-gray-900 dark:bg-gray-950 h-80 lg:h-[420px] overflow-y-auto scrollbar-thin">
           {analysis?.overviewSummary && (
-            <p className="text-xs text-gray-300 leading-relaxed mb-4">
-              {analysis.overviewSummary}
+            <div className="mb-4">
+              <MarkdownText text={analysis.overviewSummary} className="text-gray-300" />
               {isStreaming && !categories.length && (
                 <span className="ml-1 inline-block w-1.5 h-3 bg-gray-300 animate-pulse rounded-sm" />
               )}
-            </p>
+            </div>
           )}
 
           {isStreaming && (

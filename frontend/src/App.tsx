@@ -8,9 +8,11 @@ import { StreamingOutput } from './components/StreamingOutput';
 import { StrideGrid } from './components/StrideGrid';
 import { ChatPanel } from './components/ChatPanel';
 import { Sidebar } from './components/Sidebar';
+import { SettingsModal } from './components/SettingsModal';
 import { useAnalysis } from './hooks/useAnalysis';
 import { useHistory } from './hooks/useHistory';
 import { useFollowUpChat } from './hooks/useFollowUpChat';
+import { useSettings } from './hooks/useSettings';
 import { Theme } from './types/stride';
 import { HistoryEntry } from './types/history';
 import { StrideAnalysis } from './schemas/stride';
@@ -31,8 +33,12 @@ export default function App() {
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(getInitialSidebar);
   const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const { status, analysis, error, isLoading, analyze, downloadReport, reset, loadState, imageData } = useAnalysis();
+  const { settings, setSettings, isConfigured } = useSettings();
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+  const { status, analysis, error, isLoading, analyze, downloadReport, reset, loadState, imageData } = useAnalysis(settingsRef);
   const history = useHistory();
 
   // Only pass a complete StrideAnalysis to the chat context when done
@@ -147,11 +153,19 @@ export default function App() {
       <Header
         theme={theme}
         sidebarOpen={sidebarOpen}
+        isConfigured={isConfigured}
         onThemeChange={handleThemeChange}
         onSidebarToggle={() => setSidebarOpen((o) => !o)}
+        onSettingsOpen={() => setSettingsOpen(true)}
+      />
+      <SettingsModal
+        open={settingsOpen}
+        settings={settings}
+        onSave={setSettings}
+        onClose={() => setSettingsOpen(false)}
       />
 
-      <div className="flex flex-1 overflow-hidden relative">
+      <div className="flex-1 relative">
         {/* Sidebar */}
         <Sidebar
           open={sidebarOpen}
@@ -165,7 +179,7 @@ export default function App() {
         />
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto px-4 py-8 space-y-6">
+        <main className={`min-h-[calc(100vh-2.5rem)] px-4 py-8 space-y-6 transition-[margin] duration-300 ${sidebarOpen ? 'md:ml-72' : ''}`}>
           {/* Upload zone — only when no image */}
           {!hasImage && <UploadZone onFileSelect={handleFileSelect} />}
 

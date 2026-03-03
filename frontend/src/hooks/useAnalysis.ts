@@ -1,17 +1,28 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { experimental_useObject as useObject } from '@ai-sdk/react';
 import { strideAnalysisSchema, StrideAnalysis } from '../schemas/stride';
+import { LLMSettings } from './useSettings';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DeepPartialAnalysis = any;
 
-export function useAnalysis() {
+export function useAnalysis(settingsRef?: { current: LLMSettings }) {
   const [overrideState, setOverrideState] = useState<StrideAnalysis | null>(null);
   const [imageData, setImageData] = useState<{ base64: string; mimeType: string } | null>(null);
 
-  const { object, error, isLoading, submit } = useObject({
+  const { object, error, isLoading, submit, stop } = useObject({
     api: '/api/analyze',
     schema: strideAnalysisSchema,
+    onError(err) {
+      console.error('[useAnalysis] stream error:', err);
+    },
+    onFinish({ object: obj, error: finishErr }) {
+      if (finishErr) {
+        console.error('[useAnalysis] finish error:', finishErr);
+      } else {
+        console.log('[useAnalysis] finished, threats:', obj?.totalThreats);
+      }
+    },
   });
 
   const status = overrideState ? 'done'
@@ -27,8 +38,20 @@ export function useAnalysis() {
     const base64 = await fileToBase64(file);
     const mimeType = file.type;
     setImageData({ base64, mimeType });
-    submit({ imageBase64: base64, mimeType });
-  }, [submit]);
+    const llm = settingsRef?.current;
+    submit({
+      imageBase64: base64,
+      mimeType,
+      ...(llm && {
+        llmSettings: {
+          model: llm.model,
+          maxTokens: llm.maxTokens,
+          apiKey: llm.apiKey,
+          temperature: llm.temperature,
+        },
+      }),
+    });
+  }, [submit, settingsRef]);
 
   const downloadReport = useCallback(async (chatMessages?: Array<{ role: string; text: string }>) => {
     const data = overrideState ?? object;
@@ -79,6 +102,7 @@ export function useAnalysis() {
     loadState,
     reset,
     imageData,
+    stop,
   };
 }
 

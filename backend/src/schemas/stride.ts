@@ -7,6 +7,7 @@ export const threatSchema = z.object({
   severity: z.enum(['Critical', 'High', 'Medium', 'Low']),
   likelihood: z.number().min(1).max(5),
   impact: z.number().min(1).max(5),
+  riskJustification: z.string().describe('Justificativa contextual do score de risco: por que essa probabilidade e esse impacto para essa ameaça específica, baseado nos componentes e fluxos do diagrama'),
   affectedComponents: z.array(z.string()),
   mitigations: z.array(z.string()),
 });
