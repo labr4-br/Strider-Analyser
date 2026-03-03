@@ -200,11 +200,8 @@ export default function App() {
                     initial={{ opacity: 0, x: 10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="space-y-2 h-full"
+                    className="h-full"
                   >
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                      Resultado da Análise
-                    </p>
                     <StreamingOutput analysis={analysis} isStreaming={isAnalyzing} />
                   </motion.div>
                 ) : null}

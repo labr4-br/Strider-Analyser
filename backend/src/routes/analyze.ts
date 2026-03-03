@@ -27,7 +27,12 @@ router.post('/', async (req: Request, res: Response) => {
           {
             type: 'text',
             text: `Você é um especialista em cibersegurança realizando modelagem de ameaças STRIDE.
-Analise o diagrama de arquitetura fornecido e retorne uma análise estruturada.
+
+ETAPA 1 — ENTENDIMENTO DA ARQUITETURA
+Primeiro, preencha o campo architectureDescription com uma descrição técnica detalhada de tudo que você identificou no diagrama: todos os componentes, serviços, bancos de dados, APIs, filas, fronteiras de confiança, fluxos de dados, protocolos de comunicação, tecnologias e integrações externas. Seja exaustivo.
+
+ETAPA 2 — ANÁLISE STRIDE
+Em seguida, preencha overviewSummary com um resumo executivo e realize a análise STRIDE completa.
 
 Para cada uma das 6 categorias STRIDE, identifique ameaças específicas baseadas nos componentes visíveis no diagrama.
 

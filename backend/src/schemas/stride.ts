@@ -19,6 +19,7 @@ export const strideCategorySchema = z.object({
 });
 
 export const strideAnalysisSchema = z.object({
+  architectureDescription: z.string().describe('Descrição técnica detalhada de tudo que foi identificado no diagrama de arquitetura: componentes, fluxos de dados, protocolos, fronteiras de confiança, tecnologias e integrações'),
   overviewSummary: z.string().describe('Resumo executivo da análise'),
   categories: z.array(strideCategorySchema).length(6),
   totalThreats: z.number(),
