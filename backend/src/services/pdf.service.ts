@@ -799,6 +799,35 @@ export function generatePDFReport(
         L, doc.y, { align: 'center', width: W });
 
     // ══════════════════════════════════════════════════════════════════════════
+    // SECTION 1.1 — ARCHITECTURE UNDERSTANDING
+    // ══════════════════════════════════════════════════════════════════════════
+    if (analysis.architectureDescription) {
+      doc.addPage();
+      doc.y = 28;
+
+      doc
+        .fontSize(14).font('Helvetica-Bold').fillColor(C.primary)
+        .text('1.1 Entendimento da Arquitetura', L, doc.y);
+
+      doc.moveDown(0.4);
+      hRule(doc);
+      doc.moveDown(0.6);
+
+      doc
+        .fontSize(10).font('Helvetica').fillColor(C.textLight)
+        .text(
+          'Descrição técnica dos componentes, fluxos de dados, protocolos e integrações identificados no diagrama.',
+          L, doc.y, { width: W, lineGap: 3 },
+        );
+
+      doc.moveDown(0.8);
+
+      doc
+        .fontSize(9).font('Helvetica').fillColor(C.text)
+        .text(analysis.architectureDescription, L + 8, doc.y, { width: W - 16, lineGap: 3 });
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
     // SECTION 2 — IDENTIFIED COMPONENTS
     // ══════════════════════════════════════════════════════════════════════════
     renderIdentifiedComponents(doc, analysis);
