@@ -12,7 +12,7 @@ Upload any software architecture diagram and get a structured, real-time STRIDE 
 
 ## Demo
 
-<video src="https://github.com/user-attachments/assets/5a663ab9-406e-4b30-b2b3-c359e83dc30a" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/15e584ed-d43f-4511-b39c-3484be15d240" controls width="100%"></video>
 
 ---
 
