@@ -1,7 +1,3 @@
-# Claude / tooling (never commit)
-.claude/
-.playwright-mcp/
-
 # Dependencies
 node_modules/
 .pnp
