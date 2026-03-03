@@ -1,0 +1,63 @@
+# Claude / tooling (never commit)
+.claude/
+.playwright-mcp/
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.env
+
+# Build outputs
+dist/
+build/
+out/
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Uploaded files / temporary analysis files
+backend/uploads/
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+
+# Generated reports
+*.pdf
+
+# Python (ia/)
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.ipynb_checkpoints/
+
+# Jupyter
+.jupyter/
