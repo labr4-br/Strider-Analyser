@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, RotateCcw, AlertCircle } from 'lucide-react';
+import { Download, AlertCircle } from 'lucide-react';
 import { Header } from './components/Header';
 import { UploadZone } from './components/UploadZone';
 import { ImagePreview } from './components/ImagePreview';
@@ -119,11 +119,23 @@ export default function App() {
 
   const handleDownload = useCallback(async () => {
     try {
-      await downloadReport();
+      // Extract text from chat messages for the FAQ section
+      const chatMessages = chat.messages
+        ?.filter((m) => m.role === 'user' || m.role === 'assistant')
+        .map((m) => ({
+          role: m.role,
+          text: m.parts
+            ?.filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+            .map((p) => p.text)
+            .join(' ') || '',
+        }))
+        .filter((m) => m.text.length > 0);
+
+      await downloadReport(chatMessages);
     } catch (err) {
       console.error('Download failed:', err);
     }
-  }, [downloadReport]);
+  }, [downloadReport, chat.messages]);
 
   const isAnalyzing = status === 'streaming';
   const isDone = status === 'done';
@@ -221,15 +233,8 @@ export default function App() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-between pt-2"
+              className="flex justify-center pt-2"
             >
-              <button
-                onClick={handleRemove}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Nova Análise
-              </button>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}

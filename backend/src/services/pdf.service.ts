@@ -13,12 +13,12 @@ const C = {
 
 // ─── STRIDE metadata ──────────────────────────────────────────────────────────
 const STRIDE_META: Record<string, { color: string; label: string }> = {
-  S: { color: '#dc2626', label: 'Spoofing' },
-  T: { color: '#ea580c', label: 'Tampering' },
-  R: { color: '#b45309', label: 'Repudiation' },
-  I: { color: '#2563eb', label: 'Information Disclosure' },
-  D: { color: '#7c3aed', label: 'Denial of Service' },
-  E: { color: '#16a34a', label: 'Elevation of Privilege' },
+  S: { color: '#dc2626', label: 'Falsificação de Identidade' },
+  T: { color: '#ea580c', label: 'Adulteração' },
+  R: { color: '#b45309', label: 'Repúdio' },
+  I: { color: '#2563eb', label: 'Divulgação de Informações' },
+  D: { color: '#7c3aed', label: 'Negação de Serviço' },
+  E: { color: '#16a34a', label: 'Elevação de Privilégio' },
 };
 
 // ─── Severity colors ──────────────────────────────────────────────────────────
@@ -56,13 +56,13 @@ function addPageChrome(doc: PDFKit.PDFDocument, pageNum: number) {
 
   doc
     .fontSize(8).font('Helvetica').fillColor(C.muted)
-    .text('STRIDE Threat Model Analysis — Academic Use', L, fy + 7, {
+    .text('Análise de Modelagem de Ameaças STRIDE — Uso Acadêmico', L, fy + 7, {
       width: W - 50, lineBreak: false,
     });
 
   doc
     .fontSize(8).font('Helvetica').fillColor(C.muted)
-    .text(`Page ${pageNum}`, L, fy + 7, {
+    .text(`Página ${pageNum}`, L, fy + 7, {
       width: W, align: 'right', lineBreak: false,
     });
 }
@@ -128,7 +128,7 @@ function renderThreat(doc: PDFKit.PDFDocument, threat: Threat, idx: number) {
   // Risk score row
   doc
     .fontSize(8.5).font('Helvetica-Bold').fillColor(C.muted)
-    .text(`Risco: ${riskScore}/25  ·  Likelihood: ${threat.likelihood}/5  ·  Impact: ${threat.impact}/5`, L + 8, doc.y);
+    .text(`Risco: ${riskScore}/25  ·  Probabilidade: ${threat.likelihood}/5  ·  Impacto: ${threat.impact}/5`, L + 8, doc.y);
 
   doc.moveDown(0.5);
 
@@ -177,6 +177,122 @@ function renderThreat(doc: PDFKit.PDFDocument, threat: Threat, idx: number) {
   doc.moveDown(0.6);
 }
 
+// ─── Identified Components ────────────────────────────────────────────────────
+function renderIdentifiedComponents(doc: PDFKit.PDFDocument, analysis: StrideAnalysis) {
+  doc.addPage();
+  doc.y = 28;
+
+  doc
+    .fontSize(16).font('Helvetica-Bold').fillColor(C.primary)
+    .text('2. Componentes Identificados', L, doc.y);
+
+  doc.moveDown(0.4);
+  hRule(doc);
+  doc.moveDown(0.6);
+
+  // Collect unique components and their threat associations
+  const componentMap = new Map<string, { threatIds: string[]; maxSeverity: string; maxScore: number }>();
+  const severityOrder: Record<string, number> = { Critical: 4, High: 3, Medium: 2, Low: 1 };
+
+  for (const cat of analysis.categories) {
+    for (const threat of cat.threats) {
+      for (const comp of threat.affectedComponents) {
+        const existing = componentMap.get(comp);
+        const score = severityOrder[threat.severity] || 0;
+        if (existing) {
+          existing.threatIds.push(threat.id);
+          if (score > existing.maxScore) {
+            existing.maxSeverity = threat.severity;
+            existing.maxScore = score;
+          }
+        } else {
+          componentMap.set(comp, { threatIds: [threat.id], maxSeverity: threat.severity, maxScore: score });
+        }
+      }
+    }
+  }
+
+  if (componentMap.size === 0) {
+    doc
+      .fontSize(10).font('Helvetica').fillColor(C.textLight)
+      .text('Nenhum componente foi identificado nas ameaças analisadas.', L, doc.y, { width: W });
+    return;
+  }
+
+  doc
+    .fontSize(10).font('Helvetica').fillColor(C.textLight)
+    .text(
+      'Os componentes a seguir foram identificados no diagrama de arquitetura e associados às ameaças detectadas.',
+      L, doc.y, { width: W, lineGap: 3 },
+    );
+
+  doc.moveDown(1);
+
+  // Numbered list
+  const components = Array.from(componentMap.keys());
+  components.forEach((comp, i) => {
+    doc
+      .fontSize(9).font('Helvetica').fillColor(C.text)
+      .text(`${i + 1}. ${comp}`, L + 8, doc.y, { width: W - 16 });
+    doc.moveDown(0.2);
+  });
+
+  doc.moveDown(1);
+
+  // Cross-reference table
+  doc
+    .fontSize(11).font('Helvetica-Bold').fillColor(C.text)
+    .text('Tabela Cruzada — Componentes × Ameaças', L, doc.y);
+  doc.moveDown(0.6);
+
+  // Table header
+  const col1W = 200;
+  const col2W = 200;
+  const col3W = W - col1W - col2W;
+  const rowH = 20;
+  const tableX = L;
+  let tableY = doc.y;
+
+  doc.rect(tableX, tableY, W, rowH).fill(C.primary);
+  doc.fontSize(8).font('Helvetica-Bold').fillColor('#ffffff')
+    .text('Componente', tableX + 6, tableY + 6, { width: col1W - 12, lineBreak: false });
+  doc.fontSize(8).font('Helvetica-Bold').fillColor('#ffffff')
+    .text('Ameaças (IDs)', tableX + col1W + 6, tableY + 6, { width: col2W - 12, lineBreak: false });
+  doc.fontSize(8).font('Helvetica-Bold').fillColor('#ffffff')
+    .text('Severidade Máx.', tableX + col1W + col2W + 6, tableY + 6, { width: col3W - 12, lineBreak: false });
+
+  tableY += rowH;
+
+  // Sort by max severity descending
+  const sorted = Array.from(componentMap.entries())
+    .sort((a, b) => b[1].maxScore - a[1].maxScore);
+
+  for (let i = 0; i < sorted.length; i++) {
+    if (tableY > doc.page.height - 80) {
+      doc.addPage();
+      doc.y = 28;
+      tableY = doc.y;
+    }
+
+    const [comp, info] = sorted[i];
+    const bg = i % 2 === 0 ? '#f8fafc' : '#ffffff';
+    doc.rect(tableX, tableY, W, rowH).fill(bg);
+
+    doc.fontSize(8).font('Helvetica').fillColor(C.text)
+      .text(comp, tableX + 6, tableY + 6, { width: col1W - 12, lineBreak: false });
+    doc.fontSize(8).font('Helvetica').fillColor(C.text)
+      .text(info.threatIds.join(', '), tableX + col1W + 6, tableY + 6, { width: col2W - 12, lineBreak: false });
+
+    const sevColor = SEVERITY_COLORS[info.maxSeverity] || C.muted;
+    doc.fontSize(8).font('Helvetica-Bold').fillColor(sevColor)
+      .text(info.maxSeverity, tableX + col1W + col2W + 6, tableY + 6, { width: col3W - 12, lineBreak: false });
+
+    tableY += rowH;
+  }
+
+  doc.y = tableY + 10;
+}
+
 // ─── Risk Matrix helpers ───────────────────────────────────────────────────────
 function riskMatrixColor(likelihood: number, impact: number): string {
   const score = likelihood * impact;
@@ -201,7 +317,7 @@ function renderRiskMatrix(doc: PDFKit.PDFDocument, analysis: StrideAnalysis) {
   doc
     .fontSize(10).font('Helvetica').fillColor(C.textLight)
     .text(
-      'A matriz abaixo posiciona cada ameaça identificada pelo eixo Likelihood (probabilidade) × Impact (impacto). ' +
+      'A matriz abaixo posiciona cada ameaça identificada pelo eixo Probabilidade × Impacto. ' +
       'Zonas coloridas indicam o nível de risco: verde (baixo), amarelo (médio), laranja (alto), vermelho (crítico).',
       L, doc.y, { width: W, lineGap: 3 },
     );
@@ -226,15 +342,16 @@ function renderRiskMatrix(doc: PDFKit.PDFDocument, analysis: StrideAnalysis) {
       const x = matrixX + col * cellSize;
       const y = matrixY + row * cellSize;
       const color = zoneColor(col, row);
-      doc.rect(x, y, cellSize, cellSize).fill(color).fillOpacity(0.15);
-      doc.rect(x, y, cellSize, cellSize).stroke(C.border).lineWidth(0.5);
+      doc.fillOpacity(0.15).rect(x, y, cellSize, cellSize).fill(color);
+      doc.fillOpacity(1).rect(x, y, cellSize, cellSize).stroke(C.border).lineWidth(0.5);
     }
   }
+  doc.fillOpacity(1);
 
   // X-axis labels (Likelihood)
   doc
     .fontSize(8).font('Helvetica-Bold').fillColor(C.muted)
-    .text('Likelihood →', matrixX, matrixY + 5 * cellSize + 8, {
+    .text('Probabilidade →', matrixX, matrixY + 5 * cellSize + 8, {
       width: 5 * cellSize, align: 'center',
     });
 
@@ -257,7 +374,7 @@ function renderRiskMatrix(doc: PDFKit.PDFDocument, analysis: StrideAnalysis) {
 
   doc
     .fontSize(8).font('Helvetica-Bold').fillColor(C.muted)
-    .text('Impact', matrixX - 50, matrixY + 2.5 * cellSize - 4, {
+    .text('Impacto', matrixX - 50, matrixY + 2.5 * cellSize - 4, {
       width: 40, align: 'center',
     });
 
@@ -314,10 +431,206 @@ function renderRiskMatrix(doc: PDFKit.PDFDocument, analysis: StrideAnalysis) {
   doc.moveDown(1.5);
 }
 
+// ─── Conclusion ──────────────────────────────────────────────────────────────
+function renderConclusion(doc: PDFKit.PDFDocument, analysis: StrideAnalysis) {
+  doc.addPage();
+  doc.y = 28;
+
+  doc
+    .fontSize(16).font('Helvetica-Bold').fillColor(C.primary)
+    .text('5. Conclusão e Recomendações Prioritárias', L, doc.y);
+
+  doc.moveDown(0.4);
+  hRule(doc);
+  doc.moveDown(0.6);
+
+  doc
+    .fontSize(10).font('Helvetica').fillColor(C.textLight)
+    .text(
+      'Com base na análise realizada, as ameaças abaixo representam os maiores riscos para a arquitetura ' +
+      'avaliada e devem ser tratadas com prioridade.',
+      L, doc.y, { width: W, lineGap: 3 },
+    );
+
+  doc.moveDown(1);
+
+  // Collect all threats with category info
+  const allThreats: Array<{ threat: Threat; categoryKey: string; categoryName: string }> = [];
+  for (const cat of analysis.categories) {
+    for (const threat of cat.threats) {
+      allThreats.push({ threat, categoryKey: cat.key, categoryName: cat.fullName });
+    }
+  }
+
+  // Sort by risk score descending, take top 5
+  const top5 = allThreats
+    .sort((a, b) => (b.threat.likelihood * b.threat.impact) - (a.threat.likelihood * a.threat.impact))
+    .slice(0, 5);
+
+  if (top5.length === 0) {
+    doc
+      .fontSize(10).font('Helvetica').fillColor(C.textLight)
+      .text('Nenhuma ameaça foi identificada na análise.', L, doc.y, { width: W });
+    return;
+  }
+
+  top5.forEach(({ threat, categoryName }, i) => {
+    if (doc.y > doc.page.height - 140) {
+      doc.addPage();
+      doc.y = 28;
+    }
+
+    const riskScore = threat.likelihood * threat.impact;
+
+    // Number + title + severity badge
+    doc
+      .fontSize(10).font('Helvetica-Bold').fillColor(C.text)
+      .text(`${i + 1}. ${threat.title}`, L + 8, doc.y, { width: W - 80, lineBreak: false });
+
+    severityBadge(doc, threat.severity, R - 65, doc.y);
+    doc.moveDown(0.6);
+
+    // Category + risk score
+    const meta = STRIDE_META[threat.id?.[0]] || { color: C.accent };
+    doc
+      .fontSize(9).font('Helvetica').fillColor(meta.color as string)
+      .text(`Categoria: ${categoryName}`, L + 8, doc.y, { continued: true })
+      .fillColor(C.muted)
+      .text(`  ·  Risco: ${riskScore}/25`);
+
+    doc.moveDown(0.4);
+
+    // First mitigation as recommended action
+    if (threat.mitigations.length > 0) {
+      doc
+        .fontSize(9).font('Helvetica-Bold').fillColor(C.text)
+        .text('Ação recomendada: ', L + 8, doc.y, { continued: true })
+        .font('Helvetica').fillColor(C.textLight)
+        .text(threat.mitigations[0], { width: W - 16 });
+    }
+
+    doc.moveDown(0.8);
+
+    if (i < top5.length - 1) {
+      hRule(doc);
+      doc.moveDown(0.6);
+    }
+  });
+}
+
+// ─── FAQ ─────────────────────────────────────────────────────────────────────
+type ChatMessage = { role: string; text: string };
+
+/**
+ * Renders a markdown-ish text block into PDFKit.
+ * Supports: ### headings, **bold**, bullet lines (- ), numbered lists, plain text.
+ */
+function renderMarkdownText(doc: PDFKit.PDFDocument, text: string, baseX: number, textWidth: number) {
+  const lines = text.split('\n');
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) {
+      doc.moveDown(0.3);
+      continue;
+    }
+
+    if (doc.y > doc.page.height - 80) {
+      doc.addPage();
+      doc.y = 28;
+    }
+
+    // ### Heading
+    if (/^#{1,4}\s+/.test(line)) {
+      const heading = line.replace(/^#{1,4}\s+/, '').replace(/\*\*/g, '');
+      doc
+        .fontSize(10).font('Helvetica-Bold').fillColor(C.text)
+        .text(heading, baseX, doc.y, { width: textWidth, lineGap: 2 });
+      doc.moveDown(0.3);
+      continue;
+    }
+
+    // Bullet line (- item) or numbered line (1. item)
+    const bulletMatch = line.match(/^[-•]\s+(.*)/);
+    const numberedMatch = line.match(/^(\d+)\.\s+(.*)/);
+    if (bulletMatch || numberedMatch) {
+      const content = bulletMatch ? bulletMatch[1] : numberedMatch![2];
+      const prefix = bulletMatch ? '•' : `${numberedMatch![1]}.`;
+      renderInlineFormatted(doc, `${prefix}  ${content}`, baseX + 8, textWidth - 8);
+      doc.moveDown(0.2);
+      continue;
+    }
+
+    // Plain text with possible **bold** inline
+    renderInlineFormatted(doc, line, baseX, textWidth);
+    doc.moveDown(0.2);
+  }
+}
+
+/** Renders a single line handling **bold** segments inline via plain text (no continued). */
+function renderInlineFormatted(doc: PDFKit.PDFDocument, text: string, x: number, width: number) {
+  // Strip all markdown bold/italic markers and render as plain text.
+  // PDFKit's `continued` option is fragile with bufferedPages and causes ghost pages,
+  // so we render the whole line as a single .text() call.
+  const clean = text.replace(/\*{1,3}(.+?)\*{1,3}/g, '$1');
+  doc
+    .fontSize(9).font('Helvetica').fillColor(C.text)
+    .text(clean, x, doc.y, { width, lineGap: 2 });
+}
+
+function renderFAQ(doc: PDFKit.PDFDocument, chatMessages: ChatMessage[]) {
+  doc.addPage();
+  doc.y = 28;
+
+  doc
+    .fontSize(16).font('Helvetica-Bold').fillColor(C.primary)
+    .text('6. FAQ', L, doc.y);
+
+  doc.moveDown(0.4);
+  hRule(doc);
+  doc.moveDown(0.6);
+
+  doc
+    .fontSize(10).font('Helvetica').fillColor(C.textLight)
+    .text(
+      'As perguntas e respostas abaixo foram coletadas durante a sessão de consultoria de segurança ' +
+      'realizada após a análise STRIDE.',
+      L, doc.y, { width: W, lineGap: 3 },
+    );
+
+  doc.moveDown(1);
+
+  for (const msg of chatMessages) {
+    if (doc.y > doc.page.height - 100) {
+      doc.addPage();
+      doc.y = 28;
+    }
+
+    const isUser = msg.role === 'user';
+
+    if (isUser) {
+      // Question — styled as bold accent
+      doc
+        .fontSize(9.5).font('Helvetica-Bold').fillColor(C.accent)
+        .text(`P: ${msg.text}`, L + 8, doc.y, { width: W - 16, lineGap: 2 });
+      doc.moveDown(0.4);
+    } else {
+      // Answer — render with markdown formatting
+      doc
+        .fontSize(9).font('Helvetica-Bold').fillColor(C.text)
+        .text('R:', L + 8, doc.y);
+      doc.moveDown(0.2);
+      renderMarkdownText(doc, msg.text, L + 16, W - 24);
+      doc.moveDown(0.6);
+    }
+  }
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 export function generatePDFReport(
   analysis: StrideAnalysis,
   imageBase64?: string,
+  chatMessages?: ChatMessage[],
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
 
@@ -329,10 +642,10 @@ export function generatePDFReport(
       size:   'A4',
       margin: 50,
       info: {
-        Title:    'STRIDE Threat Model Analysis Report',
+        Title:    'Relatório de Modelagem de Ameaças STRIDE',
         Author:   'STRIDE Analyser',
-        Subject:  'Security Threat Modeling',
-        Keywords: 'STRIDE, threat modeling, security, architecture',
+        Subject:  'Modelagem de Ameaças de Segurança',
+        Keywords: 'STRIDE, modelagem de ameaças, segurança, arquitetura',
       },
     });
 
@@ -357,11 +670,11 @@ export function generatePDFReport(
     // Title
     doc
       .fontSize(28).font('Helvetica-Bold').fillColor(C.primary)
-      .text('Threat Model Analysis', L, 130, { align: 'center', width: W });
+      .text('Análise de Modelagem de Ameaças', L, 130, { align: 'center', width: W });
 
     doc
       .fontSize(13).font('Helvetica').fillColor(C.muted)
-      .text('STRIDE Framework — Architecture Security Assessment', L, 172, {
+      .text('Framework STRIDE — Avaliação de Segurança de Arquitetura', L, 172, {
         align: 'center', width: W,
       });
 
@@ -408,14 +721,14 @@ export function generatePDFReport(
     const colValue  = L + 180;
 
     const meta = [
-      ['Document Type',   'Security Threat Model Report'],
-      ['Framework',       'STRIDE (Microsoft Threat Modeling)'],
-      ['Classification',  'Confidential — Academic Use'],
-      ['Generated',       new Date().toLocaleString('pt-BR', {
+      ['Tipo de Documento',  'Relatório de Modelagem de Ameaças'],
+      ['Framework',          'STRIDE (Microsoft Threat Modeling)'],
+      ['Classificação',      'Confidencial — Uso Acadêmico'],
+      ['Gerado em',          new Date().toLocaleString('pt-BR', {
         day: '2-digit', month: 'long', year: 'numeric',
         hour: '2-digit', minute: '2-digit',
       })],
-      ['Version',         '1.0'],
+      ['Versão',             '1.0'],
     ];
 
     meta.forEach(([label, value], i) => {
@@ -431,8 +744,8 @@ export function generatePDFReport(
     doc
       .fontSize(8).font('Helvetica').fillColor(C.muted)
       .text(
-        'This report was automatically generated by STRIDE Analyser using AI vision models. ' +
-        'Results should be reviewed by a qualified security professional.',
+        'Este relatório foi gerado automaticamente pelo STRIDE Analyser utilizando modelos de IA com visão computacional. ' +
+        'Os resultados devem ser revisados por um profissional de segurança qualificado.',
         L, noteY + 10, { align: 'center', width: W },
       );
 
@@ -444,7 +757,7 @@ export function generatePDFReport(
 
     doc
       .fontSize(16).font('Helvetica-Bold').fillColor(C.primary)
-      .text('1. Architecture Overview', L, doc.y);
+      .text('1. Visão Geral da Arquitetura', L, doc.y);
 
     doc.moveDown(0.4);
     hRule(doc);
@@ -453,9 +766,9 @@ export function generatePDFReport(
     doc
       .fontSize(10).font('Helvetica').fillColor(C.textLight)
       .text(
-        'The diagram below represents the system architecture subject to this threat modeling ' +
-        'exercise. All threats identified in the following sections are derived from the components, ' +
-        'data flows, and trust boundaries visible in this diagram.',
+        'O diagrama abaixo representa a arquitetura do sistema analisada neste exercício de modelagem de ameaças. ' +
+        'Todas as ameaças identificadas nas seções seguintes derivam dos componentes, fluxos de dados e ' +
+        'fronteiras de confiança visíveis neste diagrama.',
         L, doc.y, { width: W, lineGap: 3 },
       );
 
@@ -468,13 +781,13 @@ export function generatePDFReport(
         doc.moveDown(1);
       } catch {
         doc.fontSize(9).fillColor(C.muted)
-          .text('[Architecture diagram could not be rendered]', L, doc.y);
+          .text('[Não foi possível renderizar o diagrama de arquitetura]', L, doc.y);
         doc.moveDown(1);
       }
     } else {
       doc.rect(L, doc.y, W, 50).fill('#f8fafc');
       doc.fontSize(9).fillColor(C.muted)
-        .text('[No architecture diagram provided]', L, doc.y + 18, {
+        .text('[Nenhum diagrama de arquitetura fornecido]', L, doc.y + 18, {
           align: 'center', width: W,
         });
       doc.moveDown(4);
@@ -482,8 +795,13 @@ export function generatePDFReport(
 
     doc
       .fontSize(8).font('Helvetica').fillColor(C.muted)
-      .text('Figure 1 — System architecture diagram submitted for analysis',
+      .text('Figura 1 — Diagrama de arquitetura do sistema submetido para análise',
         L, doc.y, { align: 'center', width: W });
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // SECTION 2 — IDENTIFIED COMPONENTS
+    // ══════════════════════════════════════════════════════════════════════════
+    renderIdentifiedComponents(doc, analysis);
 
     // ══════════════════════════════════════════════════════════════════════════
     // PAGE 3+ — STRIDE CATEGORY PAGES
@@ -493,7 +811,7 @@ export function generatePDFReport(
 
     doc
       .fontSize(16).font('Helvetica-Bold').fillColor(C.primary)
-      .text('2. STRIDE Threat Analysis', L, doc.y);
+      .text('3. Análise de Ameaças STRIDE', L, doc.y);
 
     doc.moveDown(0.4);
     hRule(doc);
@@ -502,8 +820,8 @@ export function generatePDFReport(
     doc
       .fontSize(10).font('Helvetica').fillColor(C.textLight)
       .text(
-        'The following sections detail identified threats and recommended mitigations for each ' +
-        'STRIDE category based on the submitted architecture diagram.',
+        'As seções a seguir detalham as ameaças identificadas e as mitigações recomendadas para cada ' +
+        'categoria STRIDE com base no diagrama de arquitetura submetido.',
         L, doc.y, { width: W, lineGap: 3 },
       );
 
@@ -519,7 +837,7 @@ export function generatePDFReport(
         doc.y = 28;
       }
 
-      sectionBadge(doc, `${cat.fullName}`, color, `2.${idx + 1}`);
+      sectionBadge(doc, `${cat.fullName}`, color, `3.${idx + 1}`);
 
       // Category summary
       doc
@@ -550,11 +868,29 @@ export function generatePDFReport(
     renderRiskMatrix(doc, analysis);
 
     // ══════════════════════════════════════════════════════════════════════════
+    // SECTION 5 — CONCLUSION
+    // ══════════════════════════════════════════════════════════════════════════
+    renderConclusion(doc, analysis);
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // SECTION 6 — FAQ (conditional)
+    // ══════════════════════════════════════════════════════════════════════════
+    if (chatMessages && chatMessages.length > 0) {
+      renderFAQ(doc, chatMessages);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
     // CHROME PASS — add header/footer to every page now that content is fixed
     // ══════════════════════════════════════════════════════════════════════════
     const range = doc.bufferedPageRange();
+    const totalPages = range.count;
 
-    for (let i = 0; i < range.count; i++) {
+    // Monkey-patch addPage to prevent .text() from creating ghost pages
+    // during the chrome pass (known PDFKit bufferPages + switchToPage issue).
+    const realAddPage = doc.addPage.bind(doc);
+    doc.addPage = () => doc as PDFKit.PDFDocument;
+
+    for (let i = 0; i < totalPages; i++) {
       doc.switchToPage(range.start + i);
 
       if (i === 0) {
@@ -565,6 +901,9 @@ export function generatePDFReport(
         addPageChrome(doc, i + 1);
       }
     }
+
+    // Restore original addPage
+    doc.addPage = realAddPage;
 
     doc.flushPages();
     doc.end();

@@ -5,7 +5,11 @@ import { StrideAnalysis } from '../schemas/stride';
 const router = Router();
 
 router.post('/', async (req: Request, res: Response) => {
-  const { analysis, imageBase64 } = req.body as { analysis: StrideAnalysis; imageBase64?: string };
+  const { analysis, imageBase64, chatMessages } = req.body as {
+    analysis: StrideAnalysis;
+    imageBase64?: string;
+    chatMessages?: Array<{ role: string; text: string }>;
+  };
 
   if (!analysis) {
     res.status(400).json({ error: 'Analysis is required' });
@@ -13,7 +17,7 @@ router.post('/', async (req: Request, res: Response) => {
   }
 
   try {
-    const pdfBuffer = await generatePDFReport(analysis, imageBase64);
+    const pdfBuffer = await generatePDFReport(analysis, imageBase64, chatMessages);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(

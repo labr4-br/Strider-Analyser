@@ -30,17 +30,22 @@ export function useAnalysis() {
     submit({ imageBase64: base64, mimeType });
   }, [submit]);
 
-  const downloadReport = useCallback(async () => {
+  const downloadReport = useCallback(async (chatMessages?: Array<{ role: string; text: string }>) => {
     const data = overrideState ?? object;
     if (!data) return;
+
+    const body: Record<string, unknown> = {
+      analysis: data,
+      imageBase64: imageData?.base64 || '',
+    };
+    if (chatMessages && chatMessages.length > 0) {
+      body.chatMessages = chatMessages;
+    }
 
     const response = await fetch('/api/report', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        analysis: data,
-        imageBase64: imageData?.base64 || '',
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) throw new Error('PDF generation failed');
