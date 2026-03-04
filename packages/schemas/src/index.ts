@@ -28,6 +28,25 @@ export const strideAnalysisSchema = z.object({
   highCount: z.number(),
 });
 
+export const eisenhowerItemSchema = z.object({
+  threatId: z.string().describe('ID da ameaça (ex: S1, T2)'),
+  title: z.string().describe('Título da ameaça para referência'),
+  quadrant: z.enum(['do_first', 'schedule', 'delegate', 'eliminate']).describe('Quadrante da Matriz de Eisenhower'),
+  justification: z.string().describe('Por que esta ameaça pertence a este quadrante, considerando contexto de negócio, esforço e dependências'),
+  effort: z.enum(['low', 'medium', 'high']).describe('Esforço estimado para mitigação'),
+  timeline: z.string().describe('Prazo sugerido (ex: "1-2 semanas", "próximo sprint", "Q2 2026")'),
+  quickWin: z.boolean().describe('Se pode ser resolvido rapidamente com baixo esforço'),
+});
+
+export const actionPlanSchema = z.object({
+  summary: z.string().describe('Resumo executivo da priorização: o que fazer primeiro e por quê'),
+  items: z.array(eisenhowerItemSchema),
+  quickWins: z.array(z.string()).describe('Lista de IDs de ameaças que são quick wins'),
+  strategicRecommendation: z.string().describe('Recomendação estratégica de alto nível para o time: sequência ideal de execução considerando dependências entre mitigações'),
+});
+
 export type Threat = z.infer<typeof threatSchema>;
 export type StrideCategoryData = z.infer<typeof strideCategorySchema>;
 export type StrideAnalysis = z.infer<typeof strideAnalysisSchema>;
+export type EisenhowerItem = z.infer<typeof eisenhowerItemSchema>;
+export type ActionPlan = z.infer<typeof actionPlanSchema>;

@@ -1,6 +1,6 @@
 import { Annotation, messagesStateReducer } from '@langchain/langgraph';
 import { BaseMessage } from '@langchain/core/messages';
-import { StrideAnalysis } from '../schemas/stride';
+import { StrideAnalysis, ActionPlan } from '../schemas/stride';
 
 export interface LLMSettings {
   model: string;
@@ -17,6 +17,7 @@ export const StrideStateAnnotation = Annotation.Root({
   validationStatus: Annotation<'pending' | 'approved' | 'corrected'>(),
   userFeedback: Annotation<string | undefined>(),
   strideAnalysis: Annotation<StrideAnalysis | null>(),
+  actionPlan: Annotation<ActionPlan | null>(),
   analysisStatus: Annotation<'pending' | 'streaming' | 'done'>(),
   suggestedQuestions: Annotation<string[]>(),
   messages: Annotation<BaseMessage[]>({
@@ -25,7 +26,7 @@ export const StrideStateAnnotation = Annotation.Root({
   }),
   threadId: Annotation<string>(),
   createdAt: Annotation<string>(),
-  phase: Annotation<'understanding' | 'validating' | 'analyzing' | 'chat_ready'>(),
+  phase: Annotation<'understanding' | 'validating' | 'analyzing' | 'prioritizing' | 'chat_ready'>(),
 });
 
 export type StrideState = typeof StrideStateAnnotation.State;
