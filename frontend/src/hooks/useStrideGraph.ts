@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
 import { LLMSettings } from './useSettings';
-import { StrideAnalysis } from '../schemas/stride';
+import { StrideAnalysis, ActionPlan } from '../schemas/stride';
 
-type Phase = 'idle' | 'understanding' | 'validating' | 'analyzing' | 'chat_ready';
+type Phase = 'idle' | 'understanding' | 'validating' | 'analyzing' | 'prioritizing' | 'chat_ready';
 
 export interface StepInfo {
   id: string;
@@ -22,6 +22,7 @@ interface GraphEvent {
   text?: string;
   architectureDescription?: string;
   partial?: StrideAnalysis;
+  actionPlan?: ActionPlan;
   questions?: string[];
   threadId?: string;
   message?: string;
@@ -33,6 +34,7 @@ export function useStrideGraph(settingsRef?: { current: LLMSettings }) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [architectureDescription, setArchitectureDescription] = useState('');
   const [strideAnalysis, setStrideAnalysis] = useState<StrideAnalysis | null>(null);
+  const [actionPlan, setActionPlan] = useState<ActionPlan | null>(null);
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [threadId, setThreadId] = useState<string | null>(null);
@@ -65,7 +67,12 @@ export function useStrideGraph(settingsRef?: { current: LLMSettings }) {
 
           switch (event.type) {
             case 'phase':
-              if (event.phase) setPhase(event.phase as Phase);
+              if (event.phase) {
+                setPhase(event.phase as Phase);
+                if (event.phase === 'chat_ready') {
+                  setSteps(prev => prev.map(s => s.status === 'active' ? { ...s, status: 'done' as const } : s));
+                }
+              }
               break;
             case 'arch_delta':
               if (event.text) setArchitectureDescription(event.text);
@@ -95,6 +102,9 @@ export function useStrideGraph(settingsRef?: { current: LLMSettings }) {
               break;
             case 'reasoning_delta':
               if (event.text) setReasoningText(prev => prev + event.text);
+              break;
+            case 'action_plan':
+              if (event.actionPlan) setActionPlan(event.actionPlan);
               break;
             case 'questions':
               if (event.questions) setSuggestedQuestions(event.questions);
@@ -142,6 +152,7 @@ export function useStrideGraph(settingsRef?: { current: LLMSettings }) {
     setPhase('understanding');
     setArchitectureDescription('');
     setStrideAnalysis(null);
+    setActionPlan(null);
     setSuggestedQuestions([]);
     setMessages([]);
     setThreadId(null);
@@ -284,6 +295,9 @@ export function useStrideGraph(settingsRef?: { current: LLMSettings }) {
     if (chatMessages && chatMessages.length > 0) {
       body.chatMessages = chatMessages;
     }
+    if (actionPlan) {
+      body.actionPlan = actionPlan;
+    }
 
     const response = await fetch('/api/report', {
       method: 'POST',
@@ -300,7 +314,7 @@ export function useStrideGraph(settingsRef?: { current: LLMSettings }) {
     a.download = 'stride-threat-report.pdf';
     a.click();
     URL.revokeObjectURL(url);
-  }, [strideAnalysis, imageData]);
+  }, [strideAnalysis, imageData, actionPlan]);
 
   const loadState = useCallback((savedAnalysis: StrideAnalysis, savedImageData?: { base64: string; mimeType: string }) => {
     setStrideAnalysis(savedAnalysis);
@@ -316,6 +330,7 @@ export function useStrideGraph(settingsRef?: { current: LLMSettings }) {
     setPhase('idle');
     setArchitectureDescription('');
     setStrideAnalysis(null);
+    setActionPlan(null);
     setSuggestedQuestions([]);
     setMessages([]);
     setThreadId(null);
@@ -326,7 +341,7 @@ export function useStrideGraph(settingsRef?: { current: LLMSettings }) {
   }, []);
 
   const status = phase === 'idle' ? 'idle'
-    : phase === 'understanding' || phase === 'analyzing' ? 'streaming'
+    : phase === 'understanding' || phase === 'analyzing' || phase === 'prioritizing' ? 'streaming'
     : phase === 'chat_ready' ? 'done'
     : phase;
 
@@ -336,6 +351,7 @@ export function useStrideGraph(settingsRef?: { current: LLMSettings }) {
     architectureDescription,
     strideAnalysis,
     analysis: strideAnalysis,
+    actionPlan,
     suggestedQuestions,
     messages,
     threadId,
@@ -343,7 +359,7 @@ export function useStrideGraph(settingsRef?: { current: LLMSettings }) {
     imageData,
     steps,
     reasoningText,
-    isLoading: phase === 'understanding' || phase === 'analyzing' || chatLoading,
+    isLoading: phase === 'understanding' || phase === 'analyzing' || phase === 'prioritizing' || chatLoading,
     startAnalysis,
     resumeValidation,
     sendMessage,
