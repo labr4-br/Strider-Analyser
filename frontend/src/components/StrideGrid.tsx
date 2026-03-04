@@ -1,21 +1,27 @@
 import { motion } from 'framer-motion';
-import { ShieldAlert, AlertTriangle, TrendingUp } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, TrendingUp, LayoutGrid } from 'lucide-react';
 import { StrideAnalysis, Threat } from '../schemas/stride';
 import { StrideCard } from './StrideCard';
 import { RiskMatrix } from './RiskMatrix';
 import { MarkdownText } from './MarkdownText';
+import { SectionDivider } from './SectionDivider';
 
 interface StrideGridProps {
   analysis: Partial<StrideAnalysis>;
 }
 
-function getSeverityColor(severity: string) {
-  switch (severity) {
-    case 'Critical': return 'text-red-500';
-    case 'High': return 'text-orange-500';
-    case 'Medium': return 'text-yellow-500';
-    default: return 'text-green-500';
-  }
+const SEVERITY_DOT: Record<string, string> = {
+  Critical: 'bg-rose-400',
+  High: 'bg-violet-400',
+  Medium: 'bg-sky-400',
+  Low: 'bg-teal-400',
+};
+
+function getRiskColor(score: number) {
+  if (score >= 16) return 'text-rose-500';
+  if (score >= 10) return 'text-violet-500';
+  if (score >= 5) return 'text-sky-500';
+  return 'text-teal-500';
 }
 
 export function StrideGrid({ analysis }: StrideGridProps) {
@@ -44,24 +50,32 @@ export function StrideGrid({ analysis }: StrideGridProps) {
       transition={{ duration: 0.3 }}
       className="space-y-6"
     >
-      {/* Header */}
-      <div className="flex items-center gap-2">
+      {/* Section 1 Header */}
+      <div className="flex items-center gap-3">
+        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-800 text-[10px] font-semibold text-gray-400 dark:text-gray-500 tabular-nums shrink-0">
+          1
+        </span>
         <ShieldAlert className="w-4 h-4 text-indigo-500" />
         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
           Modelo de Ameaças
         </h2>
+        {allThreats.length > 0 && (
+          <span className="text-[11px] text-gray-400 dark:text-gray-600 tabular-nums">
+            {allThreats.length} ameaças identificadas
+          </span>
+        )}
       </div>
 
       {/* Side-by-side: Matrix left | Summary right */}
       {allThreats.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
           {/* Left — Risk Matrix */}
           <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5">
             <RiskMatrix threats={allThreats} />
           </div>
 
           {/* Right — Explanation & Summary */}
-          <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 space-y-4">
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 space-y-4 overflow-y-auto">
             {/* Severity counts */}
             <div>
               <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
@@ -69,10 +83,10 @@ export function StrideGrid({ analysis }: StrideGridProps) {
               </h3>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { label: 'Críticas', count: criticalCount, color: 'bg-red-500', textColor: 'text-red-600 dark:text-red-400' },
-                  { label: 'Altas', count: highCount, color: 'bg-orange-500', textColor: 'text-orange-600 dark:text-orange-400' },
-                  { label: 'Médias', count: mediumCount, color: 'bg-yellow-500', textColor: 'text-yellow-600 dark:text-yellow-400' },
-                  { label: 'Baixas', count: lowCount, color: 'bg-green-500', textColor: 'text-green-600 dark:text-green-400' },
+                  { label: 'Críticas', count: criticalCount, color: 'bg-rose-400', textColor: 'text-rose-600 dark:text-rose-400' },
+                  { label: 'Altas', count: highCount, color: 'bg-violet-400', textColor: 'text-violet-600 dark:text-violet-400' },
+                  { label: 'Médias', count: mediumCount, color: 'bg-sky-400', textColor: 'text-sky-600 dark:text-sky-400' },
+                  { label: 'Baixas', count: lowCount, color: 'bg-teal-400', textColor: 'text-teal-600 dark:text-teal-400' },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800/60">
                     <span className={`w-2.5 h-2.5 rounded-full ${item.color} shrink-0`} />
@@ -91,15 +105,19 @@ export function StrideGrid({ analysis }: StrideGridProps) {
                   Maiores Riscos
                 </h3>
                 <div className="space-y-1.5">
-                  {topThreats.map((t) => (
-                    <div key={t.id} className="flex items-center gap-2 text-xs">
-                      <span className="font-mono font-bold text-gray-400 w-5 shrink-0">{t.id}</span>
-                      <span className={`font-bold shrink-0 ${getSeverityColor(t.severity)}`}>
-                        {t.likelihood}×{t.impact}={t.likelihood * t.impact}
-                      </span>
-                      <span className="text-gray-600 dark:text-gray-300 truncate">{t.title}</span>
-                    </div>
-                  ))}
+                  {topThreats.map((t) => {
+                    const score = t.likelihood * t.impact;
+                    return (
+                      <div key={t.id} className="flex items-center gap-2 text-xs">
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${SEVERITY_DOT[t.severity] ?? 'bg-gray-400'}`} />
+                        <span className="font-mono font-bold text-gray-400 dark:text-gray-500 w-5 shrink-0">{t.id}</span>
+                        <span className="text-gray-600 dark:text-gray-300 flex-1 min-w-0 truncate">{t.title}</span>
+                        <span className={`font-bold tabular-nums shrink-0 ${getRiskColor(score)}`}>
+                          {score}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -117,6 +135,22 @@ export function StrideGrid({ analysis }: StrideGridProps) {
           </div>
         </div>
       )}
+
+      <SectionDivider />
+
+      {/* Section 2 Header */}
+      <div className="flex items-center gap-3">
+        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-800 text-[10px] font-semibold text-gray-400 dark:text-gray-500 tabular-nums shrink-0">
+          2
+        </span>
+        <LayoutGrid className="w-4 h-4 text-indigo-500" />
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+          Categorias STRIDE
+        </h2>
+        <span className="text-[11px] text-gray-400 dark:text-gray-600 tabular-nums">
+          {categories.length} categorias
+        </span>
+      </div>
 
       {/* Cards grid — full width below */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
