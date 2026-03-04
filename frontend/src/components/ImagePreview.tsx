@@ -1,4 +1,4 @@
-import { X, Scan, Loader2, Check } from 'lucide-react';
+import { X, Scan, Loader2, Check, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { StepInfo } from '../hooks/useStrideGraph';
@@ -9,6 +9,7 @@ interface ImagePreviewProps {
   isAnalyzing: boolean;
   onRemove: () => void;
   onAnalyze?: () => void;
+  onDownload?: () => void;
   steps?: StepInfo[];
   phase?: string;
 }
@@ -19,6 +20,7 @@ export function ImagePreview({
   isAnalyzing,
   onRemove,
   onAnalyze,
+  onDownload,
   steps = [],
   phase,
 }: ImagePreviewProps) {
@@ -31,13 +33,13 @@ export function ImagePreview({
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      className="rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-900"
+      className="rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-900 h-full flex flex-col"
     >
-      <div className="relative">
+      <div className="relative flex-1">
         <img
           src={previewUrl}
           alt={displayName}
-          className="w-full h-80 lg:h-[420px] object-contain bg-gray-50 dark:bg-gray-950"
+          className="w-full h-full min-h-[320px] object-contain bg-gray-50 dark:bg-gray-950"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
 
@@ -117,7 +119,17 @@ export function ImagePreview({
             </p>
           )}
         </div>
-        {onAnalyze && (
+        {phase === 'chat_ready' && onDownload ? (
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onDownload}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Baixar Relatório PDF
+          </motion.button>
+        ) : onAnalyze ? (
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -132,7 +144,7 @@ export function ImagePreview({
             <Scan className={clsx('w-4 h-4', isAnalyzing && 'animate-spin')} />
             {isAnalyzing ? 'Analisando...' : 'Analisar Ameaças'}
           </motion.button>
-        )}
+        ) : null}
       </div>
     </motion.div>
   );

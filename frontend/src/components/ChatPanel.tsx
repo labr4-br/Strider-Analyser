@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, FormEvent, Fragment } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, MessageSquare, ShieldCheck } from 'lucide-react';
+import { Send, ShieldCheck } from 'lucide-react';
 
 type ChatHelpers = {
   messages: Array<{ id: string; role: string; parts: Array<{ type: string; text?: string }> }>;
@@ -160,10 +160,9 @@ export function ChatPanel({ messages, sendMessage, status, suggestedQuestions }:
   return (
     <div className="flex flex-col h-[480px] bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
-        <MessageSquare className="w-4 h-4 text-indigo-500" />
-        <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">Pergunte ao Especialista — FAQ do Relatório</span>
-        <ShieldCheck className="w-3.5 h-3.5 text-indigo-400 ml-1" />
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+        <ShieldCheck className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Agente de segurança com acesso à análise completa</span>
       </div>
 
       {/* Messages */}

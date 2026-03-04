@@ -54,34 +54,22 @@ export function MarkdownText({ text, className }: { text: string; className?: st
   for (const line of lines) {
     const trimmed = line.trim();
 
-    // H2
-    if (/^##\s/.test(trimmed)) {
+    // Headings (most specific first: #### before ### before ## before #)
+    const headingMatch = trimmed.match(/^(#{1,4})\s+(.*)/);
+    if (headingMatch) {
       flushList();
+      const level = headingMatch[1].length;
+      const text = headingMatch[2];
+      const styles = [
+        '', // unused (0)
+        'text-xs font-bold mt-2 mb-0.5 text-gray-900 dark:text-gray-100',           // H1
+        'text-xs font-bold uppercase tracking-wide mt-2 mb-0.5 text-indigo-500 dark:text-indigo-400', // H2
+        'text-xs font-semibold mt-1.5 mb-0.5 text-gray-800 dark:text-gray-200',     // H3
+        'text-xs font-medium mt-1 mb-0.5 text-gray-700 dark:text-gray-300',         // H4
+      ];
       elements.push(
-        <p key={elements.length} className="text-xs font-bold uppercase tracking-wide mt-2 mb-0.5 text-indigo-500 dark:text-indigo-400">
-          <InlineMd text={trimmed.replace(/^##\s+/, '')} />
-        </p>
-      );
-      continue;
-    }
-
-    // H3
-    if (/^###\s/.test(trimmed)) {
-      flushList();
-      elements.push(
-        <p key={elements.length} className="text-xs font-semibold mt-1.5 mb-0.5 text-gray-200">
-          <InlineMd text={trimmed.replace(/^###\s+/, '')} />
-        </p>
-      );
-      continue;
-    }
-
-    // H1
-    if (/^#\s/.test(trimmed)) {
-      flushList();
-      elements.push(
-        <p key={elements.length} className="text-xs font-bold mt-2 mb-0.5 text-gray-100">
-          <InlineMd text={trimmed.replace(/^#\s+/, '')} />
+        <p key={elements.length} className={styles[level]}>
+          <InlineMd text={text} />
         </p>
       );
       continue;

@@ -27,7 +27,7 @@ function AccordionPanel({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border-b border-gray-200 dark:border-gray-700 last:border-b-0">
+    <div className="border-b border-gray-200 dark:border-gray-700 last:border-b-0 flex flex-col">
       <button
         onClick={onToggle}
         className="flex items-center gap-2 w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors"
@@ -89,7 +89,7 @@ export function StreamingOutput({ analysis, isStreaming, reasoningText = '' }: S
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden"
+      className="rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden h-full flex flex-col"
     >
       <AccordionPanel
         title="Entendimento da Arquitetura"
@@ -123,7 +123,7 @@ export function StreamingOutput({ analysis, isStreaming, reasoningText = '' }: S
         open={analysisOpen}
         onToggle={() => setAnalysisOpen((o) => !o)}
       >
-        <div className="px-5 py-4 bg-gray-900 dark:bg-gray-950 h-80 lg:h-[420px] overflow-y-auto scrollbar-thin">
+        <div className="px-5 py-4 bg-gray-900 dark:bg-gray-950 min-h-[200px] max-h-[420px] overflow-y-auto scrollbar-thin flex-1">
           {analysis?.overviewSummary && (
             <div className="mb-4">
               <MarkdownText text={analysis.overviewSummary} className="text-gray-300" />

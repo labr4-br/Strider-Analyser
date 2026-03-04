@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Pencil, Eye } from 'lucide-react';
+import { MarkdownText } from './MarkdownText';
 
 interface ValidationPanelProps {
   architectureDescription: string;
@@ -25,7 +26,7 @@ export function ValidationPanel({ architectureDescription, onConfirm, onCorrect 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden"
+      className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden h-full flex flex-col"
     >
       <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
         <div className="flex items-center gap-2">
@@ -37,7 +38,7 @@ export function ValidationPanel({ architectureDescription, onConfirm, onCorrect 
         <span className="text-xs text-gray-400 dark:text-gray-500">Passo 1/3</span>
       </div>
 
-      <div className="px-5 py-4 space-y-4">
+      <div className="px-5 py-4 space-y-4 flex-1 flex flex-col">
         <p className="text-xs text-gray-500 dark:text-gray-400">
           Revise o entendimento gerado pela IA sobre sua arquitetura. Confirme se está correto ou corrija antes de prosseguir com a análise STRIDE.
         </p>
@@ -52,9 +53,7 @@ export function ValidationPanel({ architectureDescription, onConfirm, onCorrect 
           />
         ) : (
           <div className="max-h-64 overflow-y-auto rounded-lg bg-gray-50 dark:bg-gray-800/60 px-4 py-3">
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-              {architectureDescription}
-            </p>
+            <MarkdownText text={architectureDescription} className="text-gray-700 dark:text-gray-300" />
           </div>
         )}
 
