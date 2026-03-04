@@ -5,6 +5,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import { createStrideGraph } from '../graph/index';
 import { createStrideTools } from '../graph/tools';
+import { buildChatSystemPrompt } from '../graph/nodes/chat';
 import { LLMSettings, StrideState } from '../graph/state';
 
 const router = Router();
@@ -93,6 +94,13 @@ async function processStream(
         }
       }
 
+      if (nodeName === 'eisenhower_prioritization') {
+        sendEvent(res, { type: 'phase', phase: 'prioritizing' });
+        if (state.actionPlan) {
+          sendEvent(res, { type: 'action_plan', actionPlan: state.actionPlan });
+        }
+      }
+
       if (nodeName === 'generate_questions') {
         if (state.suggestedQuestions) {
           sendEvent(res, { type: 'questions', questions: state.suggestedQuestions });
@@ -115,7 +123,7 @@ async function processStream(
 router.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
-    nodes: ['understand_architecture', 'human_validation', 'stride_analysis', 'generate_questions', 'chat'],
+    nodes: ['understand_architecture', 'human_validation', 'stride_analysis', 'eisenhower_prioritization', 'generate_questions', 'chat'],
   });
 });
 
@@ -154,6 +162,7 @@ router.post('/run', async (req: Request, res: Response) => {
         architectureDescription: '',
         architectureComponents: [],
         strideAnalysis: null,
+        actionPlan: null,
       },
       { ...config, streamMode: ['updates', 'custom'] },
     );
@@ -246,22 +255,7 @@ router.post('/stream', async (req: Request, res: Response) => {
         openAIApiKey: state.llmSettings.apiKey,
       });
 
-      const systemPrompt = `Você é um consultor especialista em cibersegurança. O usuário realizou uma análise de ameaças STRIDE em um diagrama de arquitetura e agora quer fazer perguntas de follow-up.
-
-## Descrição da Arquitetura
-${state.architectureDescription}
-
-## Resumo da Análise
-${state.strideAnalysis.overviewSummary}
-Total de ameaças: ${state.strideAnalysis.totalThreats} | Críticas: ${state.strideAnalysis.criticalCount} | Altas: ${state.strideAnalysis.highCount}
-
-## Instruções
-- Use as ferramentas disponíveis para consultar os dados da análise antes de responder.
-- NÃO invente dados — sempre consulte as ferramentas para obter informações precisas.
-- Responda em português do Brasil.
-- Seja específico e prático nas recomendações.
-- Quando solicitado código, forneça exemplos completos e funcionais.
-- Ao recomendar mitigações, priorize por risk score (likelihood × impact).`;
+      const systemPrompt = buildChatSystemPrompt(state);
 
       const agent = createReactAgent({ llm, tools, prompt: systemPrompt });
 
