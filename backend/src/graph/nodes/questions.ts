@@ -25,21 +25,25 @@ export async function generateQuestions(state: StrideState): Promise<Partial<Str
     model,
     schema: questionsSchema,
     temperature: 0.7,
-    prompt: `Você é um consultor de cibersegurança. Com base na análise STRIDE abaixo, gere entre 5 e 8 perguntas contextuais que ajudem o usuário a:
-- Explorar as ameaças mais críticas em profundidade
-- Entender as mitigações recomendadas
-- Investigar componentes específicos da arquitetura
-- Obter recomendações práticas de implementação
+    prompt: `Você é um Security Architect sênior que acabou de concluir uma modelagem de ameaças STRIDE. Agora precisa sugerir as perguntas certas para que o time aprofunde os pontos mais relevantes.
 
-Resumo da análise:
+## Contexto da Análise
+
 ${analysis.overviewSummary}
 
-Top ameaças (por risk score):
+## Top Ameaças (por risk score)
 ${topThreats.map(t => `- ${t.id}: ${t.title} (${t.severity}, risco: ${t.likelihood * t.impact}/25)`).join('\n')}
 
 Total: ${analysis.totalThreats} ameaças | Críticas: ${analysis.criticalCount} | Altas: ${analysis.highCount}
 
-Gere perguntas em português do Brasil, específicas para esta análise. Cada pergunta deve ser direta e acionável.`,
+## Gere 5-8 perguntas que cubram estes ângulos:
+- **Ameaças críticas**: "Como podemos mitigar [ameaça X] no [componente Y]?"
+- **Quick wins**: oportunidades de reduzir risco com baixo esforço
+- **Compliance**: implicações para LGPD, PCI-DSS ou regulatórias relevantes
+- **Código**: pedidos de exemplo de implementação de mitigações
+- **Priorização**: ajuda para decidir o que resolver primeiro
+
+Escreva em português do Brasil. Cada pergunta deve ser direta, específica para ESTA análise, e acionável — algo que o time realmente perguntaria numa reunião de security review.`,
   });
 
   return {

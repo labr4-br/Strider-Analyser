@@ -37,43 +37,49 @@ export async function strideAnalysis(
   try {
     emit({ type: 'step', step: 'start', label: 'Iniciando análise STRIDE...' });
 
-    const prompt = `Você é um especialista em cibersegurança realizando modelagem de ameaças STRIDE.
+    const prompt = `Você é um Security Architect sênior conduzindo uma modelagem de ameaças STRIDE. Você segue a metodologia Microsoft Threat Modeling, com referências a OWASP Top 10, MITRE ATT&CK e CWE quando aplicável. Seu estilo combina rigor técnico com clareza — o relatório será lido tanto pelo time de engenharia quanto pela liderança de negócio.
 
-CONTEXTO — ARQUITETURA VALIDADA
-O usuário já validou o seguinte entendimento da arquitetura:
+## Arquitetura Validada pelo Usuário
 
 ${state.architectureDescription}
 
-ETAPA 1 — DESCRIÇÃO DA ARQUITETURA
-Copie a descrição da arquitetura acima para o campo architectureDescription.
+## Sua Tarefa
 
-ETAPA 2 — ANÁLISE STRIDE
-Preencha overviewSummary com um resumo executivo e realize a análise STRIDE completa.
+### 1. architectureDescription
+Reescreva a descrição da arquitetura de forma clara e estruturada, mantendo todos os componentes e fluxos identificados.
 
-Para cada uma das 6 categorias STRIDE, identifique ameaças específicas baseadas nos componentes descritos.
+### 2. overviewSummary
+Escreva um resumo executivo (3-5 frases) que responda: "qual é o nível de risco geral dessa arquitetura e quais são os pontos mais preocupantes?" — algo que um CISO ou gestor de produto consiga ler em 30 segundos e entender a situação.
 
-Categorias (use exatamente estas keys e fullNames):
-- S: Falsificação de Identidade (Spoofing)
-- T: Adulteração (Tampering)
-- R: Repúdio (Repudiation)
-- I: Divulgação de Informação (Information Disclosure)
-- D: Negação de Serviço (Denial of Service)
-- E: Elevação de Privilégio (Elevation of Privilege)
+### 3. Análise STRIDE Completa
 
-Para cada ameaça, forneça:
-- ID único (ex: S1, T2, R1)
-- Título curto e descritivo
-- Descrição detalhada da ameaça
-- Severidade: Critical, High, Medium ou Low
-- Likelihood (1-5): probabilidade de ocorrência
-- Impact (1-5): impacto se explorada
-- Justificativa do risco (riskJustification): explique POR QUE você atribuiu essa probabilidade e esse impacto, referenciando componentes e fluxos específicos
-- Componentes afetados
-- Mitigações recomendadas
+Para cada uma das 6 categorias, identifique ameaças reais e específicas para ESTA arquitetura (não genéricas):
 
-IMPORTANTE: Identifique pelo menos 2-3 ameaças por categoria. Preencha totalThreats, criticalCount e highCount ao final.
+| Key | fullName |
+|-----|----------|
+| S | Falsificação de Identidade (Spoofing) |
+| T | Adulteração (Tampering) |
+| R | Repúdio (Repudiation) |
+| I | Divulgação de Informação (Information Disclosure) |
+| D | Negação de Serviço (Denial of Service) |
+| E | Elevação de Privilégio (Elevation of Privilege) |
 
-Responda em português do Brasil. Seja específico para os componentes da arquitetura.`;
+Para cada ameaça forneça:
+- **id**: código único (S1, S2, T1, T2, etc.)
+- **title**: título curto e direto (ex: "JWT sem rotação de chaves no API Gateway")
+- **description**: o que pode acontecer, como um atacante exploraria, e qual o impacto real no negócio. Escreva de forma que um dev júnior entenda.
+- **severity**: Critical, High, Medium ou Low
+- **likelihood** (1-5): quão provável é essa ameaça considerando o estado atual da arquitetura
+- **impact** (1-5): qual o dano se explorada (dados vazados, indisponibilidade, prejuízo financeiro, etc.)
+- **riskJustification**: explique o raciocínio por trás do score — referencie componentes e fluxos específicos. Ex: "Likelihood 4 porque o API Gateway não mostra evidência de rate limiting, e Impact 5 porque um vazamento do banco de clientes afetaria compliance com LGPD."
+- **affectedComponents**: lista dos componentes impactados
+- **mitigations**: recomendações práticas e implementáveis. Prefira ações concretas ("implementar mTLS entre Service A e Service B") a conselhos vagos ("melhorar a segurança").
+
+### Regras
+- Mínimo 2-3 ameaças por categoria — se a arquitetura não expõe um risco óbvio em alguma categoria, explique por quê no summary da categoria
+- Preencha totalThreats, criticalCount e highCount com os totais corretos
+- Escreva em português do Brasil
+- Seja específico para os componentes DESTA arquitetura — evite ameaças genéricas que se aplicariam a qualquer sistema`;
 
     const result = streamText({
       model,
