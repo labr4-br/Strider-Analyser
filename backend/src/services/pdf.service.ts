@@ -1,5 +1,5 @@
 import PDFDocument from 'pdfkit';
-import { StrideAnalysis, Threat } from '../schemas/stride';
+import { StrideAnalysis, Threat, ActionPlan } from '../schemas/stride';
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
 const C = {
@@ -13,20 +13,20 @@ const C = {
 
 // ─── STRIDE metadata ──────────────────────────────────────────────────────────
 const STRIDE_META: Record<string, { color: string; label: string }> = {
-  S: { color: '#dc2626', label: 'Falsificação de Identidade' },
-  T: { color: '#ea580c', label: 'Adulteração' },
-  R: { color: '#b45309', label: 'Repúdio' },
-  I: { color: '#2563eb', label: 'Divulgação de Informações' },
-  D: { color: '#7c3aed', label: 'Negação de Serviço' },
-  E: { color: '#16a34a', label: 'Elevação de Privilégio' },
+  S: { color: '#fb7185', label: 'Falsificação de Identidade' },
+  T: { color: '#a78bfa', label: 'Adulteração' },
+  R: { color: '#818cf8', label: 'Repúdio' },
+  I: { color: '#38bdf8', label: 'Divulgação de Informações' },
+  D: { color: '#22d3ee', label: 'Negação de Serviço' },
+  E: { color: '#2dd4bf', label: 'Elevação de Privilégio' },
 };
 
 // ─── Severity colors ──────────────────────────────────────────────────────────
 const SEVERITY_COLORS: Record<string, string> = {
-  Critical: '#DC2626',
-  High:     '#EA580C',
-  Medium:   '#CA8A04',
-  Low:      '#16A34A',
+  Critical: '#fb7185',
+  High:     '#a78bfa',
+  Medium:   '#38bdf8',
+  Low:      '#2dd4bf',
 };
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
@@ -296,10 +296,10 @@ function renderIdentifiedComponents(doc: PDFKit.PDFDocument, analysis: StrideAna
 // ─── Risk Matrix helpers ───────────────────────────────────────────────────────
 function riskMatrixColor(likelihood: number, impact: number): string {
   const score = likelihood * impact;
-  if (score >= 16) return '#DC2626';
-  if (score >= 10) return '#EA580C';
-  if (score >= 5)  return '#CA8A04';
-  return '#16A34A';
+  if (score >= 16) return '#fb7185';
+  if (score >= 10) return '#a78bfa';
+  if (score >= 5)  return '#38bdf8';
+  return '#2dd4bf';
 }
 
 function renderRiskMatrix(doc: PDFKit.PDFDocument, analysis: StrideAnalysis) {
@@ -318,7 +318,7 @@ function renderRiskMatrix(doc: PDFKit.PDFDocument, analysis: StrideAnalysis) {
     .fontSize(10).font('Helvetica').fillColor(C.textLight)
     .text(
       'A matriz abaixo posiciona cada ameaça identificada pelo eixo Probabilidade × Impacto. ' +
-      'Zonas coloridas indicam o nível de risco: verde (baixo), amarelo (médio), laranja (alto), vermelho (crítico).',
+      'Zonas coloridas indicam o nível de risco: teal (baixo), sky (médio), violet (alto), rose (crítico).',
       L, doc.y, { width: W, lineGap: 3 },
     );
 
@@ -413,10 +413,10 @@ function renderRiskMatrix(doc: PDFKit.PDFDocument, analysis: StrideAnalysis) {
   doc.moveDown(0.4);
 
   const zones = [
-    { label: 'Crítico (16–25)', color: '#DC2626' },
-    { label: 'Alto (10–15)',    color: '#EA580C' },
-    { label: 'Médio (5–9)',     color: '#CA8A04' },
-    { label: 'Baixo (1–4)',     color: '#16A34A' },
+    { label: 'Crítico (16–25)', color: '#fb7185' },
+    { label: 'Alto (10–15)',    color: '#a78bfa' },
+    { label: 'Médio (5–9)',     color: '#38bdf8' },
+    { label: 'Baixo (1–4)',     color: '#2dd4bf' },
   ];
 
   let legendX = L;
@@ -431,6 +431,110 @@ function renderRiskMatrix(doc: PDFKit.PDFDocument, analysis: StrideAnalysis) {
   doc.moveDown(1.5);
 }
 
+// ─── Action Plan (Eisenhower) ────────────────────────────────────────────────
+const QUADRANT_LABELS: Record<string, string> = {
+  do_first:  'Fazer Primeiro',
+  schedule:  'Agendar',
+  delegate:  'Delegar',
+  eliminate: 'Monitorar',
+};
+
+const EFFORT_LABELS: Record<string, string> = {
+  low:    'Baixo',
+  medium: 'Médio',
+  high:   'Alto',
+};
+
+function renderActionPlan(doc: PDFKit.PDFDocument, plan: ActionPlan) {
+  doc.addPage();
+  doc.y = 28;
+
+  doc
+    .fontSize(16).font('Helvetica-Bold').fillColor(C.primary)
+    .text('5. Plano de Ação (Eisenhower)', L, doc.y);
+
+  doc.moveDown(0.4);
+  hRule(doc);
+  doc.moveDown(0.6);
+
+  doc
+    .fontSize(10).font('Helvetica').fillColor(C.textLight)
+    .text(plan.summary, L, doc.y, { width: W, lineGap: 3 });
+
+  doc.moveDown(1);
+
+  const col1W = 180;
+  const col2W = 120;
+  const col3W = 80;
+  const col4W = W - col1W - col2W - col3W;
+  const rowH = 22;
+  const tableX = L;
+  let tableY = doc.y;
+
+  doc.rect(tableX, tableY, W, rowH).fill(C.primary);
+  doc.fontSize(8).font('Helvetica-Bold').fillColor('#ffffff')
+    .text('Ameaça', tableX + 6, tableY + 7, { width: col1W - 12, lineBreak: false });
+  doc.fontSize(8).font('Helvetica-Bold').fillColor('#ffffff')
+    .text('Quadrante', tableX + col1W + 6, tableY + 7, { width: col2W - 12, lineBreak: false });
+  doc.fontSize(8).font('Helvetica-Bold').fillColor('#ffffff')
+    .text('Esforço', tableX + col1W + col2W + 6, tableY + 7, { width: col3W - 12, lineBreak: false });
+  doc.fontSize(8).font('Helvetica-Bold').fillColor('#ffffff')
+    .text('Prazo', tableX + col1W + col2W + col3W + 6, tableY + 7, { width: col4W - 12, lineBreak: false });
+
+  tableY += rowH;
+
+  for (let i = 0; i < plan.items.length; i++) {
+    if (tableY > doc.page.height - 80) {
+      doc.addPage();
+      doc.y = 28;
+      tableY = doc.y;
+    }
+
+    const item = plan.items[i];
+    const bg = item.quickWin ? '#fdf2f8' : (i % 2 === 0 ? '#f8fafc' : '#ffffff');
+    doc.rect(tableX, tableY, W, rowH).fill(bg);
+
+    const titleText = item.quickWin ? `★ ${item.title}` : item.title;
+    doc.fontSize(8).font('Helvetica').fillColor(C.text)
+      .text(titleText, tableX + 6, tableY + 7, { width: col1W - 12, lineBreak: false });
+    doc.fontSize(8).font('Helvetica').fillColor(C.text)
+      .text(QUADRANT_LABELS[item.quadrant] || item.quadrant, tableX + col1W + 6, tableY + 7, { width: col2W - 12, lineBreak: false });
+    doc.fontSize(8).font('Helvetica').fillColor(C.text)
+      .text(EFFORT_LABELS[item.effort] || item.effort, tableX + col1W + col2W + 6, tableY + 7, { width: col3W - 12, lineBreak: false });
+    doc.fontSize(8).font('Helvetica').fillColor(C.text)
+      .text(item.timeline, tableX + col1W + col2W + col3W + 6, tableY + 7, { width: col4W - 12, lineBreak: false });
+
+    tableY += rowH;
+  }
+
+  doc.y = tableY + 10;
+
+  if (plan.quickWins.length > 0) {
+    doc.moveDown(0.6);
+    doc
+      .fontSize(9).font('Helvetica-Bold').fillColor(C.text)
+      .text('Quick Wins (★):', L, doc.y);
+    doc.moveDown(0.3);
+    for (const qw of plan.quickWins) {
+      doc
+        .fontSize(9).font('Helvetica').fillColor(C.textLight)
+        .text(`•  ${qw}`, L + 8, doc.y, { width: W - 16, lineGap: 2 });
+      doc.moveDown(0.2);
+    }
+  }
+
+  if (plan.strategicRecommendation) {
+    doc.moveDown(0.8);
+    doc
+      .fontSize(9).font('Helvetica-Bold').fillColor(C.text)
+      .text('Recomendação Estratégica:', L, doc.y);
+    doc.moveDown(0.3);
+    doc
+      .fontSize(9).font('Helvetica').fillColor(C.textLight)
+      .text(plan.strategicRecommendation, L + 8, doc.y, { width: W - 16, lineGap: 3 });
+  }
+}
+
 // ─── Conclusion ──────────────────────────────────────────────────────────────
 function renderConclusion(doc: PDFKit.PDFDocument, analysis: StrideAnalysis) {
   doc.addPage();
@@ -438,7 +542,7 @@ function renderConclusion(doc: PDFKit.PDFDocument, analysis: StrideAnalysis) {
 
   doc
     .fontSize(16).font('Helvetica-Bold').fillColor(C.primary)
-    .text('5. Conclusão e Recomendações Prioritárias', L, doc.y);
+    .text('6. Conclusão e Recomendações Prioritárias', L, doc.y);
 
   doc.moveDown(0.4);
   hRule(doc);
@@ -584,7 +688,7 @@ function renderFAQ(doc: PDFKit.PDFDocument, chatMessages: ChatMessage[]) {
 
   doc
     .fontSize(16).font('Helvetica-Bold').fillColor(C.primary)
-    .text('6. FAQ', L, doc.y);
+    .text('7. FAQ', L, doc.y);
 
   doc.moveDown(0.4);
   hRule(doc);
@@ -631,6 +735,7 @@ export function generatePDFReport(
   analysis: StrideAnalysis,
   imageBase64?: string,
   chatMessages?: ChatMessage[],
+  actionPlan?: ActionPlan,
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
 
@@ -697,8 +802,8 @@ export function generatePDFReport(
 
     const counts = [
       { label: 'Total de Ameaças', value: String(analysis.totalThreats), color: C.accent },
-      { label: 'Críticas',         value: String(analysis.criticalCount), color: '#DC2626' },
-      { label: 'Altas',            value: String(analysis.highCount),     color: '#EA580C' },
+      { label: 'Críticas',         value: String(analysis.criticalCount), color: '#fb7185' },
+      { label: 'Altas',            value: String(analysis.highCount),     color: '#a78bfa' },
     ];
 
     counts.forEach(({ label, value, color }, i) => {
@@ -897,12 +1002,19 @@ export function generatePDFReport(
     renderRiskMatrix(doc, analysis);
 
     // ══════════════════════════════════════════════════════════════════════════
-    // SECTION 5 — CONCLUSION
+    // SECTION 5 — ACTION PLAN (conditional)
+    // ══════════════════════════════════════════════════════════════════════════
+    if (actionPlan) {
+      renderActionPlan(doc, actionPlan);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // SECTION 6 — CONCLUSION
     // ══════════════════════════════════════════════════════════════════════════
     renderConclusion(doc, analysis);
 
     // ══════════════════════════════════════════════════════════════════════════
-    // SECTION 6 — FAQ (conditional)
+    // SECTION 7 — FAQ (conditional)
     // ══════════════════════════════════════════════════════════════════════════
     if (chatMessages && chatMessages.length > 0) {
       renderFAQ(doc, chatMessages);

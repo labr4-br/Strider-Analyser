@@ -1,14 +1,15 @@
 import { Router, Request, Response } from 'express';
 import { generatePDFReport } from '../services/pdf.service';
-import { StrideAnalysis } from '../schemas/stride';
+import { StrideAnalysis, ActionPlan } from '../schemas/stride';
 
 const router = Router();
 
 router.post('/', async (req: Request, res: Response) => {
-  const { analysis, imageBase64, chatMessages } = req.body as {
+  const { analysis, imageBase64, chatMessages, actionPlan } = req.body as {
     analysis: StrideAnalysis;
     imageBase64?: string;
     chatMessages?: Array<{ role: string; text: string }>;
+    actionPlan?: ActionPlan;
   };
 
   if (!analysis) {
@@ -17,7 +18,7 @@ router.post('/', async (req: Request, res: Response) => {
   }
 
   try {
-    const pdfBuffer = await generatePDFReport(analysis, imageBase64, chatMessages);
+    const pdfBuffer = await generatePDFReport(analysis, imageBase64, chatMessages, actionPlan);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
