@@ -1,14 +1,12 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load .env from monorepo root (CWD is backend/ when run via workspace)
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
-dotenv.config(); // fallback: backend/.env
+dotenv.config();
 import express from 'express';
 import cors from 'cors';
-import analyzeRouter from './routes/analyze';
 import reportRouter from './routes/report';
-import chatRouter from './routes/chat';
+import graphRouter from './routes/graph';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -27,9 +25,8 @@ app.get('/health', (_req, res) => {
 
 
 
-app.use('/api/analyze', analyzeRouter);
 app.use('/api/report', reportRouter);
-app.use('/api/chat', chatRouter);
+app.use('/api/graph', graphRouter);
 
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);

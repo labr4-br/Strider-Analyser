@@ -1,10 +1,8 @@
 import { tool } from '@langchain/core/tools';
-import { ChatOpenAI } from '@langchain/openai';
-import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import { z } from 'zod';
 import { StrideAnalysis, Threat } from '../schemas/stride';
 
-function createTools(analysis: StrideAnalysis) {
+export function createStrideTools(analysis: StrideAnalysis) {
   const allThreats: Threat[] = analysis.categories.flatMap((c) => c.threats);
 
   const searchThreats = tool(
@@ -156,7 +154,6 @@ function createTools(analysis: StrideAnalysis) {
         targets = targets.filter((t) => t.severity === severity);
       }
 
-      // Sort by risk score desc
       targets.sort((a, b) => b.likelihood * b.impact - a.likelihood * a.impact);
 
       const seen = new Set<string>();
@@ -205,36 +202,4 @@ function createTools(analysis: StrideAnalysis) {
   );
 
   return [searchThreats, filterThreats, calculateRiskMatrix, recommendMitigations];
-}
-
-export function createSecurityAdvisorGraph(analysis: StrideAnalysis) {
-  const tools = createTools(analysis);
-
-  const llm = new ChatOpenAI({
-    model: 'gpt-4o',
-    temperature: 0.3,
-  });
-
-  const systemPrompt = `Você é um consultor especialista em cibersegurança. O usuário realizou uma análise de ameaças STRIDE em um diagrama de arquitetura e agora quer fazer perguntas de follow-up.
-
-## Descrição da Arquitetura
-${analysis.architectureDescription}
-
-## Resumo da Análise
-${analysis.overviewSummary}
-Total de ameaças: ${analysis.totalThreats} | Críticas: ${analysis.criticalCount} | Altas: ${analysis.highCount}
-
-## Instruções
-- Use as ferramentas disponíveis para consultar os dados da análise antes de responder.
-- NÃO invente dados — sempre consulte as ferramentas para obter informações precisas.
-- Responda em português do Brasil.
-- Seja específico e prático nas recomendações.
-- Quando solicitado código, forneça exemplos completos e funcionais.
-- Ao recomendar mitigações, priorize por risk score (likelihood × impact).`;
-
-  return createReactAgent({
-    llm,
-    tools,
-    prompt: systemPrompt,
-  });
 }

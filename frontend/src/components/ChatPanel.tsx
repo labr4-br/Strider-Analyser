@@ -6,6 +6,7 @@ type ChatHelpers = {
   messages: Array<{ id: string; role: string; parts: Array<{ type: string; text?: string }> }>;
   sendMessage: (message: { text: string }) => void;
   status: string;
+  suggestedQuestions?: string[];
 };
 
 const SUGGESTION_CHIPS = [
@@ -136,7 +137,7 @@ function MarkdownMessage({ text, isUser }: { text: string; isUser: boolean }) {
   return <div className="text-xs space-y-0.5">{elements}</div>;
 }
 
-export function ChatPanel({ messages, sendMessage, status }: ChatHelpers) {
+export function ChatPanel({ messages, sendMessage, status, suggestedQuestions }: ChatHelpers) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isLoading = status === 'streaming' || status === 'submitted';
@@ -226,7 +227,7 @@ export function ChatPanel({ messages, sendMessage, status }: ChatHelpers) {
       {/* Suggestion chips — show only when no messages yet */}
       {messages.length === 0 && (
         <div className="px-4 py-2 flex flex-wrap gap-2 border-t border-gray-100 dark:border-gray-800">
-          {SUGGESTION_CHIPS.map((chip) => (
+          {(suggestedQuestions && suggestedQuestions.length > 0 ? suggestedQuestions : SUGGESTION_CHIPS).map((chip) => (
             <button
               key={chip}
               onClick={() => handleChipClick(chip)}

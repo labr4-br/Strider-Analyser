@@ -3,10 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Eye, ChevronDown } from 'lucide-react';
 import { StrideAnalysis } from '../schemas/stride';
 import { MarkdownText } from './MarkdownText';
+import { ReasoningBlock } from './ReasoningBlock';
 
 interface StreamingOutputProps {
   analysis: Partial<StrideAnalysis> | null;
   isStreaming: boolean;
+  reasoningText?: string;
 }
 
 function AccordionPanel({
@@ -52,7 +54,7 @@ function AccordionPanel({
   );
 }
 
-export function StreamingOutput({ analysis, isStreaming }: StreamingOutputProps) {
+export function StreamingOutput({ analysis, isStreaming, reasoningText = '' }: StreamingOutputProps) {
   const [archOpen, setArchOpen] = useState(false);
   const [analysisOpen, setAnalysisOpen] = useState(false);
 
@@ -131,10 +133,20 @@ export function StreamingOutput({ analysis, isStreaming }: StreamingOutputProps)
             </div>
           )}
 
+          {reasoningText && (
+            <ReasoningBlock text={reasoningText} isStreaming={isStreaming} />
+          )}
+
           {isStreaming && (
-            <p className="text-xs text-indigo-400 mb-3">
-              Analisando... {totalThreats > 0 ? `${totalThreats} ameaça${totalThreats !== 1 ? 's' : ''} identificada${totalThreats !== 1 ? 's' : ''}` : ''}
-            </p>
+            <div className="mb-3">
+              {totalThreats > 0 ? (
+                <p className="text-xs text-indigo-400">
+                  {totalThreats} ameaça{totalThreats !== 1 ? 's' : ''} identificada{totalThreats !== 1 ? 's' : ''}
+                </p>
+              ) : (
+                <p className="text-xs text-indigo-400">Analisando...</p>
+              )}
+            </div>
           )}
 
           <div className="space-y-2">

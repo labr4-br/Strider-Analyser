@@ -296,10 +296,10 @@ function renderIdentifiedComponents(doc: PDFKit.PDFDocument, analysis: StrideAna
 // ─── Risk Matrix helpers ───────────────────────────────────────────────────────
 function riskMatrixColor(likelihood: number, impact: number): string {
   const score = likelihood * impact;
-  if (score >= 16) return '#DC2626'; // Red
-  if (score >= 9)  return '#EA580C'; // Orange
-  if (score >= 4)  return '#CA8A04'; // Yellow
-  return '#16A34A';                  // Green
+  if (score >= 16) return '#DC2626';
+  if (score >= 10) return '#EA580C';
+  if (score >= 5)  return '#CA8A04';
+  return '#16A34A';
 }
 
 function renderRiskMatrix(doc: PDFKit.PDFDocument, analysis: StrideAnalysis) {
@@ -414,9 +414,9 @@ function renderRiskMatrix(doc: PDFKit.PDFDocument, analysis: StrideAnalysis) {
 
   const zones = [
     { label: 'Crítico (16–25)', color: '#DC2626' },
-    { label: 'Alto (9–15)',     color: '#EA580C' },
-    { label: 'Médio (4–8)',     color: '#CA8A04' },
-    { label: 'Baixo (1–3)',     color: '#16A34A' },
+    { label: 'Alto (10–15)',    color: '#EA580C' },
+    { label: 'Médio (5–9)',     color: '#CA8A04' },
+    { label: 'Baixo (1–4)',     color: '#16A34A' },
   ];
 
   let legendX = L;

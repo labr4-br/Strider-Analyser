@@ -7,11 +7,11 @@ import { ImagePreview } from './components/ImagePreview';
 import { StreamingOutput } from './components/StreamingOutput';
 import { StrideGrid } from './components/StrideGrid';
 import { ChatPanel } from './components/ChatPanel';
+import { ValidationPanel } from './components/ValidationPanel';
 import { Sidebar } from './components/Sidebar';
 import { SettingsModal } from './components/SettingsModal';
-import { useAnalysis } from './hooks/useAnalysis';
+import { useStrideGraph } from './hooks/useStrideGraph';
 import { useHistory } from './hooks/useHistory';
-import { useFollowUpChat } from './hooks/useFollowUpChat';
 import { useSettings } from './hooks/useSettings';
 import { Theme } from './types/stride';
 import { HistoryEntry } from './types/history';
@@ -38,12 +38,9 @@ export default function App() {
   const { settings, setSettings, isConfigured } = useSettings();
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
-  const { status, analysis, error, isLoading, analyze, downloadReport, reset, loadState, imageData } = useAnalysis(settingsRef);
-  const history = useHistory();
 
-  // Only pass a complete StrideAnalysis to the chat context when done
-  const chatAnalysis = status === 'done' ? (analysis as StrideAnalysis | null) : null;
-  const chat = useFollowUpChat(chatAnalysis);
+  const graph = useStrideGraph(settingsRef);
+  const history = useHistory();
 
   const savedRef = useRef(false);
 
@@ -63,8 +60,8 @@ export default function App() {
     setPreviewUrl(url);
     setActiveHistoryId(null);
     savedRef.current = false;
-    reset();
-  }, [reset]);
+    graph.reset();
+  }, [graph.reset]);
 
   const handleRemove = useCallback(() => {
     setImageFile(null);
@@ -72,22 +69,21 @@ export default function App() {
     setPreviewUrl('');
     setActiveHistoryId(null);
     savedRef.current = false;
-    reset();
-  }, [previewUrl, activeHistoryId, reset]);
+    graph.reset();
+  }, [previewUrl, activeHistoryId, graph.reset]);
 
   const handleAnalyze = useCallback(() => {
     if (imageFile) {
       savedRef.current = false;
-      analyze(imageFile);
+      graph.startAnalysis(imageFile);
     }
-  }, [imageFile, analyze]);
+  }, [imageFile, graph.startAnalysis]);
 
-  // Auto-save to history when analysis completes
   useEffect(() => {
-    if (status !== 'done' || !imageFile || savedRef.current || !analysis) return;
+    if (graph.phase !== 'chat_ready' || !imageFile || savedRef.current || !graph.analysis) return;
     savedRef.current = true;
 
-    const completeAnalysis = analysis as StrideAnalysis;
+    const completeAnalysis = graph.analysis as StrideAnalysis;
 
     const reader = new FileReader();
     reader.onload = () => {
@@ -102,13 +98,14 @@ export default function App() {
         imageBase64: base64 || '',
         imageMimeType: mimeType || imageFile.type || 'image/png',
         analysis: completeAnalysis,
+        threadId: graph.threadId || undefined,
       };
 
       history.save(entry);
       setActiveHistoryId(entry.id);
     };
     reader.readAsDataURL(imageFile);
-  }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [graph.phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadFromHistory = useCallback((entry: HistoryEntry) => {
     if (previewUrl && !activeHistoryId) URL.revokeObjectURL(previewUrl);
@@ -118,15 +115,14 @@ export default function App() {
     setActiveHistoryId(entry.id);
     savedRef.current = true;
 
-    loadState(entry.analysis, { base64: entry.imageBase64, mimeType: entry.imageMimeType });
+    graph.loadState(entry.analysis, { base64: entry.imageBase64, mimeType: entry.imageMimeType });
 
     if (window.innerWidth < 768) setSidebarOpen(false);
-  }, [previewUrl, activeHistoryId, loadState]);
+  }, [previewUrl, activeHistoryId, graph.loadState]);
 
   const handleDownload = useCallback(async () => {
     try {
-      // Extract text from chat messages for the FAQ section
-      const chatMessages = chat.messages
+      const chatMessages = graph.messages
         ?.filter((m) => m.role === 'user' || m.role === 'assistant')
         .map((m) => ({
           role: m.role,
@@ -137,16 +133,19 @@ export default function App() {
         }))
         .filter((m) => m.text.length > 0);
 
-      await downloadReport(chatMessages);
+      await graph.downloadReport(chatMessages);
     } catch (err) {
       console.error('Download failed:', err);
     }
-  }, [downloadReport, chat.messages]);
+  }, [graph.downloadReport, graph.messages]);
 
-  const isAnalyzing = status === 'streaming';
-  const isDone = status === 'done';
-  const isError = status === 'error';
+  const isAnalyzing = graph.phase === 'understanding' || graph.phase === 'analyzing';
+  const isDone = graph.phase === 'chat_ready';
+  const isValidating = graph.phase === 'validating';
   const hasImage = !!previewUrl || !!imageFile;
+  const hasError = !!graph.error;
+
+  const chatStatus = graph.isLoading ? 'streaming' : isDone ? 'ready' : 'idle';
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-200 flex flex-col">
@@ -166,7 +165,6 @@ export default function App() {
       />
 
       <div className="flex-1 relative">
-        {/* Sidebar */}
         <Sidebar
           open={sidebarOpen}
           entries={history.entries}
@@ -178,26 +176,23 @@ export default function App() {
           onNew={handleRemove}
         />
 
-        {/* Main content */}
         <main className={`min-h-[calc(100vh-2.5rem)] px-4 py-8 space-y-6 transition-[margin] duration-300 ${sidebarOpen ? 'md:ml-72' : ''}`}>
-          {/* Upload zone — only when no image */}
-          {!hasImage && <UploadZone onFileSelect={handleFileSelect} />}
+          {!hasImage && graph.phase === 'idle' && <UploadZone onFileSelect={handleFileSelect} />}
 
-          {/* Side-by-side: image left, analysis right */}
           {hasImage && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-              {/* Left — image preview */}
               <ImagePreview
                 file={imageFile}
                 previewUrl={previewUrl}
                 isAnalyzing={isAnalyzing}
                 onRemove={handleRemove}
                 onAnalyze={imageFile ? handleAnalyze : undefined}
+                steps={graph.steps}
+                phase={graph.phase}
               />
 
-              {/* Right — streaming output */}
               <AnimatePresence mode="wait">
-                {isError ? (
+                {hasError ? (
                   <motion.div
                     key="error"
                     initial={{ opacity: 0, y: 10 }}
@@ -206,9 +201,23 @@ export default function App() {
                     className="flex items-center gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800"
                   >
                     <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-                    <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+                    <p className="text-sm text-red-700 dark:text-red-300">{graph.error}</p>
                   </motion.div>
-                ) : (isAnalyzing || isDone) && analysis ? (
+                ) : isValidating ? (
+                  <motion.div
+                    key="validation"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <ValidationPanel
+                      architectureDescription={graph.architectureDescription}
+                      onConfirm={() => graph.resumeValidation('approve')}
+                      onCorrect={(feedback) => graph.resumeValidation('correct', feedback)}
+                    />
+                  </motion.div>
+                ) : (isAnalyzing || isDone) ? (
                   <motion.div
                     key="stream"
                     initial={{ opacity: 0, x: 10 }}
@@ -216,30 +225,46 @@ export default function App() {
                     transition={{ duration: 0.3 }}
                     className="h-full"
                   >
-                    <StreamingOutput analysis={analysis} isStreaming={isAnalyzing} />
+                    <StreamingOutput
+                      analysis={graph.analysis || { architectureDescription: graph.architectureDescription }}
+                      isStreaming={isAnalyzing}
+                      reasoningText={graph.reasoningText}
+                    />
+                  </motion.div>
+                ) : graph.phase === 'understanding' ? (
+                  <motion.div
+                    key="understanding"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="h-full"
+                  >
+                    <StreamingOutput analysis={{ architectureDescription: graph.architectureDescription }} isStreaming={true} />
                   </motion.div>
                 ) : null}
               </AnimatePresence>
             </div>
           )}
 
-          {/* Threat model grid — full width below */}
-          {isDone && analysis && (analysis.categories?.length ?? 0) > 0 && (
-            <StrideGrid analysis={analysis} />
+          {isDone && graph.analysis && (graph.analysis.categories?.length ?? 0) > 0 && (
+            <StrideGrid analysis={graph.analysis} />
           )}
 
-          {/* Chat panel — only when done */}
           {isDone && (
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
             >
-              <ChatPanel {...chat} />
+              <ChatPanel
+                messages={graph.messages}
+                sendMessage={graph.sendMessage}
+                status={chatStatus}
+                suggestedQuestions={graph.suggestedQuestions}
+              />
             </motion.div>
           )}
 
-          {/* Action buttons */}
           {isDone && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}

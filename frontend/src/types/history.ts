@@ -7,4 +7,5 @@ export interface HistoryEntry {
   imageBase64: string;
   imageMimeType: string;
   analysis: StrideAnalysis;
+  threadId?: string;
 }

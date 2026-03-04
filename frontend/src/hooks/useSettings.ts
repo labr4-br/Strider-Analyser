@@ -16,7 +16,7 @@ const DEFAULTS: LLMSettings = {
   temperature: 0.7,
 };
 
-export const OPENAI_MODELS = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'o1', 'o1-mini'];
+export const OPENAI_MODELS = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'o3', 'o3-mini', 'o4-mini'];
 
 function load(): LLMSettings {
   try {
