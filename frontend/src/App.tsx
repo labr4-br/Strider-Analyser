@@ -1,11 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, AlertCircle } from 'lucide-react';
+import { AlertCircle, MessageSquare } from 'lucide-react';
 import { Header } from './components/Header';
 import { UploadZone } from './components/UploadZone';
+import { SampleDiagrams } from './components/SampleDiagrams';
 import { ImagePreview } from './components/ImagePreview';
 import { StreamingOutput } from './components/StreamingOutput';
 import { StrideGrid } from './components/StrideGrid';
+import { ActionPlanSection } from './components/ActionPlanSection';
 import { ChatPanel } from './components/ChatPanel';
 import { ValidationPanel } from './components/ValidationPanel';
 import { Sidebar } from './components/Sidebar';
@@ -13,6 +15,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { useStrideGraph } from './hooks/useStrideGraph';
 import { useHistory } from './hooks/useHistory';
 import { useSettings } from './hooks/useSettings';
+import { SectionDivider } from './components/SectionDivider';
 import { Theme } from './types/stride';
 import { HistoryEntry } from './types/history';
 import { StrideAnalysis } from './schemas/stride';
@@ -43,6 +46,7 @@ export default function App() {
   const history = useHistory();
 
   const savedRef = useRef(false);
+  const strideGridRef = useRef<HTMLDivElement>(null);
 
   const handleThemeChange = useCallback((t: Theme) => {
     setTheme(t);
@@ -63,6 +67,16 @@ export default function App() {
     graph.reset();
   }, [graph.reset]);
 
+  const handleFileSelectAndAnalyze = useCallback((file: File) => {
+    setImageFile(file);
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    setActiveHistoryId(null);
+    savedRef.current = false;
+    setSidebarOpen(false);
+    graph.startAnalysis(file);
+  }, [graph.startAnalysis]);
+
   const handleRemove = useCallback(() => {
     setImageFile(null);
     if (previewUrl && !activeHistoryId) URL.revokeObjectURL(previewUrl);
@@ -75,6 +89,7 @@ export default function App() {
   const handleAnalyze = useCallback(() => {
     if (imageFile) {
       savedRef.current = false;
+      setSidebarOpen(false);
       graph.startAnalysis(imageFile);
     }
   }, [imageFile, graph.startAnalysis]);
@@ -106,6 +121,14 @@ export default function App() {
     };
     reader.readAsDataURL(imageFile);
   }, [graph.phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (graph.phase === 'chat_ready' && graph.analysis?.categories?.length) {
+      setTimeout(() => {
+        strideGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }
+  }, [graph.phase, graph.analysis]);
 
   const loadFromHistory = useCallback((entry: HistoryEntry) => {
     if (previewUrl && !activeHistoryId) URL.revokeObjectURL(previewUrl);
@@ -139,7 +162,7 @@ export default function App() {
     }
   }, [graph.downloadReport, graph.messages]);
 
-  const isAnalyzing = graph.phase === 'understanding' || graph.phase === 'analyzing';
+  const isAnalyzing = graph.phase === 'understanding' || graph.phase === 'analyzing' || graph.phase === 'prioritizing';
   const isDone = graph.phase === 'chat_ready';
   const isValidating = graph.phase === 'validating';
   const hasImage = !!previewUrl || !!imageFile;
@@ -177,16 +200,22 @@ export default function App() {
         />
 
         <main className={`min-h-[calc(100vh-2.5rem)] px-4 py-8 space-y-6 transition-[margin] duration-300 ${sidebarOpen ? 'md:ml-72' : ''}`}>
-          {!hasImage && graph.phase === 'idle' && <UploadZone onFileSelect={handleFileSelect} />}
+          {!hasImage && graph.phase === 'idle' && (
+            <div className="space-y-4 max-w-2xl mx-auto">
+              <UploadZone onFileSelect={handleFileSelect} />
+              <SampleDiagrams onFileSelect={handleFileSelectAndAnalyze} />
+            </div>
+          )}
 
           {hasImage && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
               <ImagePreview
                 file={imageFile}
                 previewUrl={previewUrl}
                 isAnalyzing={isAnalyzing}
                 onRemove={handleRemove}
                 onAnalyze={imageFile ? handleAnalyze : undefined}
+                onDownload={isDone ? handleDownload : undefined}
                 steps={graph.steps}
                 phase={graph.phase}
               />
@@ -210,6 +239,7 @@ export default function App() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.3 }}
+                    className="h-full"
                   >
                     <ValidationPanel
                       architectureDescription={graph.architectureDescription}
@@ -247,41 +277,46 @@ export default function App() {
           )}
 
           {isDone && graph.analysis && (graph.analysis.categories?.length ?? 0) > 0 && (
-            <StrideGrid analysis={graph.analysis} />
+            <div ref={strideGridRef}>
+              <StrideGrid analysis={graph.analysis} />
+            </div>
+          )}
+
+          {isDone && graph.actionPlan && (
+            <>
+              <SectionDivider />
+              <ActionPlanSection actionPlan={graph.actionPlan} />
+            </>
           )}
 
           {isDone && (
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-            >
-              <ChatPanel
-                messages={graph.messages}
-                sendMessage={graph.sendMessage}
-                status={chatStatus}
-                suggestedQuestions={graph.suggestedQuestions}
-              />
-            </motion.div>
-          )}
-
-          {isDone && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex justify-center pt-2"
-            >
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleDownload}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-sm"
+            <>
+              <SectionDivider />
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="space-y-6"
               >
-                <Download className="w-4 h-4" />
-                Baixar Relatório PDF
-              </motion.button>
-            </motion.div>
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-800 text-[10px] font-semibold text-gray-400 dark:text-gray-500 tabular-nums shrink-0">
+                    4
+                  </span>
+                  <MessageSquare className="w-4 h-4 text-indigo-500" />
+                  <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    FAQ — Pergunte ao Especialista
+                  </h2>
+                </div>
+                <ChatPanel
+                  messages={graph.messages}
+                  sendMessage={graph.sendMessage}
+                  status={chatStatus}
+                  suggestedQuestions={graph.suggestedQuestions}
+                />
+              </motion.div>
+            </>
           )}
+
         </main>
       </div>
     </div>
