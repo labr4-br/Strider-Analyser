@@ -1,5 +1,14 @@
 import PDFDocument from 'pdfkit';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { StrideAnalysis, Threat, ActionPlan } from '../schemas/stride';
+
+let logoBuffer: Buffer | null = null;
+try {
+  logoBuffer = readFileSync(join(__dirname, '..', 'assets', 'logo.png'));
+} catch {
+  // Logo not available — skip
+}
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
 const C = {
@@ -50,13 +59,23 @@ function addPageChrome(doc: PDFKit.PDFDocument, pageNum: number) {
   // Top bar
   doc.rect(0, 0, pw, 6).fill(C.accent);
 
+  // Header: logo + brand name (right-aligned, below top bar)
+  if (logoBuffer) {
+    doc.image(logoBuffer, R - 14, 10, { width: 14, height: 14 });
+  }
+  doc
+    .fontSize(7).font('Helvetica').fillColor(C.muted)
+    .text('FIAP — Software Security', L, 13, {
+      width: R - L - 18, align: 'right', lineBreak: false,
+    });
+
   // Footer rule + text
   const fy = ph - 42;
   doc.moveTo(L, fy).lineTo(R, fy).strokeColor(C.border).lineWidth(0.5).stroke();
 
   doc
     .fontSize(8).font('Helvetica').fillColor(C.muted)
-    .text('Análise de Modelagem de Ameaças STRIDE — Uso Acadêmico', L, fy + 7, {
+    .text('FIAP — Software Security · Análise STRIDE', L, fy + 7, {
       width: W - 50, lineBreak: false,
     });
 
@@ -671,15 +690,46 @@ function renderMarkdownText(doc: PDFKit.PDFDocument, text: string, baseX: number
   }
 }
 
-/** Renders a single line handling **bold** segments inline via plain text (no continued). */
+/** Renders a single line handling **bold** segments with real bold font. */
 function renderInlineFormatted(doc: PDFKit.PDFDocument, text: string, x: number, width: number) {
-  // Strip all markdown bold/italic markers and render as plain text.
-  // PDFKit's `continued` option is fragile with bufferedPages and causes ghost pages,
-  // so we render the whole line as a single .text() call.
-  const clean = text.replace(/\*{1,3}(.+?)\*{1,3}/g, '$1');
-  doc
-    .fontSize(9).font('Helvetica').fillColor(C.text)
-    .text(clean, x, doc.y, { width, lineGap: 2 });
+  // Parse into segments: { text, bold }
+  const segments: Array<{ text: string; bold: boolean }> = [];
+  const regex = /\*{1,3}(.+?)\*{1,3}/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ text: text.slice(lastIndex, match.index), bold: false });
+    }
+    segments.push({ text: match[1], bold: true });
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    segments.push({ text: text.slice(lastIndex), bold: false });
+  }
+
+  // If no bold markers, render as plain text
+  if (segments.length <= 1 && !segments[0]?.bold) {
+    const clean = segments[0]?.text || text;
+    doc.fontSize(9).font('Helvetica').fillColor(C.text)
+      .text(clean, x, doc.y, { width, lineGap: 2 });
+    return;
+  }
+
+  // Render segments with continued to keep them on the same line
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    const isLast = i === segments.length - 1;
+    doc.fontSize(9)
+      .font(seg.bold ? 'Helvetica-Bold' : 'Helvetica')
+      .fillColor(C.text);
+    if (i === 0) {
+      doc.text(seg.text, x, doc.y, { width, lineGap: 2, continued: !isLast });
+    } else {
+      doc.text(seg.text, { width, lineGap: 2, continued: !isLast });
+    }
+  }
 }
 
 function renderFAQ(doc: PDFKit.PDFDocument, chatMessages: ChatMessage[]) {
@@ -765,12 +815,20 @@ export function generatePDFReport(
     // PAGE 1 — COVER  (no standard chrome — handled separately in loop below)
     // ══════════════════════════════════════════════════════════════════════════
 
-    // Institution label
+    // Institution logo + branding
+    const logoSize = 32;
+    const brandText = 'FIAP — Software Security';
+    const brandFontSize = 10;
+    const brandTextW = brandFontSize * brandText.length * 0.5;
+    const brandTotalW = logoSize + 8 + brandTextW;
+    const brandX = L + (W - brandTotalW) / 2;
+
+    if (logoBuffer) {
+      doc.image(logoBuffer, brandX, 26, { width: logoSize, height: logoSize });
+    }
     doc
-      .fontSize(9).font('Helvetica').fillColor(C.muted)
-      .text('FIAP · Hackathon Security Assessment', L, 30, {
-        align: 'center', width: W,
-      });
+      .fontSize(brandFontSize).font('Helvetica-Bold').fillColor(C.primary)
+      .text(brandText, brandX + logoSize + 8, 34, { lineBreak: false });
 
     // Title
     doc
@@ -927,9 +985,7 @@ export function generatePDFReport(
 
       doc.moveDown(0.8);
 
-      doc
-        .fontSize(9).font('Helvetica').fillColor(C.text)
-        .text(analysis.architectureDescription, L + 8, doc.y, { width: W - 16, lineGap: 3 });
+      renderMarkdownText(doc, analysis.architectureDescription, L + 8, W - 16);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
