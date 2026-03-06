@@ -26,7 +26,7 @@ export const StrideStateAnnotation = Annotation.Root({
   }),
   threadId: Annotation<string>(),
   createdAt: Annotation<string>(),
-  phase: Annotation<'understanding' | 'validating' | 'analyzing' | 'prioritizing' | 'chat_ready'>(),
+  phase: Annotation<'understanding' | 'validating' | 'analyzing' | 'chat_ready'>(),
 });
 
 export type StrideState = typeof StrideStateAnnotation.State;

@@ -48,6 +48,5 @@ Escreva em português do Brasil. Cada pergunta deve ser direta, específica para
 
   return {
     suggestedQuestions: object.questions,
-    phase: 'chat_ready' as const,
   };
 }

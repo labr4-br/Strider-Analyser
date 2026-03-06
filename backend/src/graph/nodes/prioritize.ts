@@ -77,6 +77,5 @@ Ameaças de baixo risco que não justificam investimento imediato. Devem ser mon
 
   return {
     actionPlan: object,
-    phase: 'prioritizing' as const,
   };
 }

@@ -42,11 +42,14 @@ interface StrideProgressEvent {
   text?: string;
 }
 
+const PARALLEL_NODES = new Set(['enrich_threats', 'eisenhower_prioritization', 'generate_questions']);
+
 async function processStream(
   stream: AsyncIterable<[string, unknown]>,
   res: Response,
 ) {
   let sentAnalyzingPhase = false;
+  const completedParallel = new Set<string>();
 
   for await (const item of stream) {
     // Multi-mode stream yields 3-tuples: [namespace[], mode, payload]
@@ -94,8 +97,14 @@ async function processStream(
         }
       }
 
+      // Parallel nodes: enrich, eisenhower, questions
+      if (nodeName === 'enrich_threats') {
+        if (state.strideAnalysis) {
+          sendEvent(res, { type: 'analysis_delta', partial: state.strideAnalysis });
+        }
+      }
+
       if (nodeName === 'eisenhower_prioritization') {
-        sendEvent(res, { type: 'phase', phase: 'prioritizing' });
         if (state.actionPlan) {
           sendEvent(res, { type: 'action_plan', actionPlan: state.actionPlan });
         }
@@ -105,7 +114,14 @@ async function processStream(
         if (state.suggestedQuestions) {
           sendEvent(res, { type: 'questions', questions: state.suggestedQuestions });
         }
-        sendEvent(res, { type: 'phase', phase: 'chat_ready' });
+      }
+
+      // Track parallel completion → emit chat_ready when all done
+      if (PARALLEL_NODES.has(nodeName)) {
+        completedParallel.add(nodeName);
+        if (completedParallel.size === PARALLEL_NODES.size) {
+          sendEvent(res, { type: 'phase', phase: 'chat_ready' });
+        }
       }
 
       if (nodeName === 'chat') {
@@ -123,7 +139,7 @@ async function processStream(
 router.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
-    nodes: ['understand_architecture', 'human_validation', 'stride_analysis', 'eisenhower_prioritization', 'generate_questions', 'chat'],
+    nodes: ['understand_architecture', 'human_validation', 'stride_analysis', 'enrich_threats', 'eisenhower_prioritization', 'generate_questions', 'chat'],
   });
 });
 
