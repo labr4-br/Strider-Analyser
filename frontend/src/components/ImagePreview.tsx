@@ -1,4 +1,4 @@
-import { X, Scan, Loader2, Check, Download } from 'lucide-react';
+import { X, Scan, Brain, Check, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { StepInfo } from '../hooks/useStrideGraph';
@@ -35,6 +35,28 @@ export function ImagePreview({
       transition={{ duration: 0.3 }}
       className="rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-900 h-full flex flex-col"
     >
+      <style>{`
+        @keyframes shimmer {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        .text-shimmer {
+          background: linear-gradient(
+            90deg,
+            rgba(255,255,255,0.4) 0%,
+            rgba(255,255,255,0.9) 40%,
+            rgba(255,255,255,1) 50%,
+            rgba(255,255,255,0.9) 60%,
+            rgba(255,255,255,0.4) 100%
+          );
+          background-size: 200% auto;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: shimmer 2.5s ease-in-out infinite;
+        }
+      `}</style>
+
       <div className="relative flex-1">
         <img
           src={previewUrl}
@@ -53,7 +75,7 @@ export function ImagePreview({
               transition={{ duration: 0.4 }}
               className="absolute inset-0 bg-black/70 backdrop-blur-[6px] flex items-end"
             >
-              <div className="w-full p-5 flex flex-col gap-2">
+              <div className="w-full p-5 flex flex-col gap-1.5">
                 <AnimatePresence initial={false}>
                   {isUnderstanding && steps.length === 0 && (
                     <motion.div
@@ -63,8 +85,8 @@ export function ImagePreview({
                       transition={{ duration: 0.25 }}
                       className="flex items-center gap-2.5"
                     >
-                      <Loader2 className="w-4 h-4 text-indigo-400 animate-spin shrink-0" />
-                      <span className="text-sm font-medium text-white">
+                      <Brain className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                      <span className="text-[13px] font-medium text-shimmer">
                         Entendendo a arquitetura...
                       </span>
                     </motion.div>
@@ -78,16 +100,16 @@ export function ImagePreview({
                       className="flex items-center gap-2.5"
                     >
                       {step.status === 'active' ? (
-                        <Loader2 className="w-4 h-4 text-indigo-400 animate-spin shrink-0" />
+                        <Brain className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                       ) : (
-                        <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <Check className="w-3.5 h-3.5 text-white/30 shrink-0" />
                       )}
                       <span
                         className={clsx(
-                          'text-sm font-medium',
+                          'text-[13px] font-medium',
                           step.status === 'active'
-                            ? 'text-white'
-                            : 'text-white/60',
+                            ? 'text-shimmer'
+                            : 'text-white/30',
                         )}
                       >
                         {step.label}

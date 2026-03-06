@@ -35,9 +35,6 @@ export function ActionPlanSection({ actionPlan }: ActionPlanSectionProps) {
       className="space-y-6"
     >
       <div className="flex items-center gap-3">
-        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-800 text-[10px] font-semibold text-gray-400 dark:text-gray-500 tabular-nums shrink-0">
-          3
-        </span>
         <Target className="w-4 h-4 text-indigo-500" />
         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
           Plano de Ação (Eisenhower)

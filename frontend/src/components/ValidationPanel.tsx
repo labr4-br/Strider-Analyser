@@ -40,7 +40,7 @@ export function ValidationPanel({ architectureDescription, onConfirm, onCorrect 
 
       <div className="px-5 py-4 space-y-4 flex-1 flex flex-col">
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          Revise o entendimento gerado pela IA sobre sua arquitetura. Confirme se está correto ou corrija antes de prosseguir com a análise STRIDE.
+          Analisei o diagrama e esse foi meu entendimento da arquitetura. Pode confirmar se estou no caminho certo ou me corrigir antes de seguir com a análise STRIDE?
         </p>
 
         {isEditing ? (

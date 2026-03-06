@@ -51,10 +51,8 @@ export function StrideGrid({ analysis }: StrideGridProps) {
       className="space-y-6"
     >
       {/* Section 1 Header */}
+      <SectionDivider number={1} />
       <div className="flex items-center gap-3">
-        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-800 text-[10px] font-semibold text-gray-400 dark:text-gray-500 tabular-nums shrink-0">
-          1
-        </span>
         <ShieldAlert className="w-4 h-4 text-indigo-500" />
         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
           Modelo de Ameaças
@@ -136,13 +134,9 @@ export function StrideGrid({ analysis }: StrideGridProps) {
         </div>
       )}
 
-      <SectionDivider />
-
       {/* Section 2 Header */}
+      <SectionDivider number={2} />
       <div className="flex items-center gap-3">
-        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-800 text-[10px] font-semibold text-gray-400 dark:text-gray-500 tabular-nums shrink-0">
-          2
-        </span>
         <LayoutGrid className="w-4 h-4 text-indigo-500" />
         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
           Categorias STRIDE

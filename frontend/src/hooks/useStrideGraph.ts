@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { LLMSettings } from './useSettings';
 import { StrideAnalysis, ActionPlan } from '../schemas/stride';
 
-type Phase = 'idle' | 'understanding' | 'validating' | 'analyzing' | 'prioritizing' | 'chat_ready';
+type Phase = 'idle' | 'understanding' | 'validating' | 'analyzing' | 'chat_ready';
 
 export interface StepInfo {
   id: string;
@@ -341,7 +341,7 @@ export function useStrideGraph(settingsRef?: { current: LLMSettings }) {
   }, []);
 
   const status = phase === 'idle' ? 'idle'
-    : phase === 'understanding' || phase === 'analyzing' || phase === 'prioritizing' ? 'streaming'
+    : phase === 'understanding' || phase === 'analyzing' ? 'streaming'
     : phase === 'chat_ready' ? 'done'
     : phase;
 
@@ -359,7 +359,7 @@ export function useStrideGraph(settingsRef?: { current: LLMSettings }) {
     imageData,
     steps,
     reasoningText,
-    isLoading: phase === 'understanding' || phase === 'analyzing' || phase === 'prioritizing' || chatLoading,
+    isLoading: phase === 'understanding' || phase === 'analyzing' || chatLoading,
     startAnalysis,
     resumeValidation,
     sendMessage,

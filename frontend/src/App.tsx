@@ -162,7 +162,7 @@ export default function App() {
     }
   }, [graph.downloadReport, graph.messages]);
 
-  const isAnalyzing = graph.phase === 'understanding' || graph.phase === 'analyzing' || graph.phase === 'prioritizing';
+  const isAnalyzing = graph.phase === 'understanding' || graph.phase === 'analyzing';
   const isDone = graph.phase === 'chat_ready';
   const isValidating = graph.phase === 'validating';
   const hasImage = !!previewUrl || !!imageFile;
@@ -284,14 +284,14 @@ export default function App() {
 
           {isDone && graph.actionPlan && (
             <>
-              <SectionDivider />
+              <SectionDivider number={3} />
               <ActionPlanSection actionPlan={graph.actionPlan} />
             </>
           )}
 
           {isDone && (
             <>
-              <SectionDivider />
+              <SectionDivider number={4} />
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -299,9 +299,6 @@ export default function App() {
                 className="space-y-6"
               >
                 <div className="flex items-center gap-3">
-                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-800 text-[10px] font-semibold text-gray-400 dark:text-gray-500 tabular-nums shrink-0">
-                    4
-                  </span>
                   <MessageSquare className="w-4 h-4 text-indigo-500" />
                   <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                     FAQ — Pergunte ao Especialista
