@@ -10,6 +10,15 @@ export const threatSchema = z.object({
   riskJustification: z.string().describe('Justificativa contextual do score de risco: por que essa probabilidade e esse impacto para essa ameaça específica, baseado nos componentes e fluxos do diagrama'),
   affectedComponents: z.array(z.string()),
   mitigations: z.array(z.string()),
+  mitreAttackId: z.string().nullable().describe('Código MITRE ATT&CK (ex: T1190). Null se ainda não enriquecido.'),
+  mitreTactic: z.string().nullable().describe('Tática MITRE ATT&CK (ex: Initial Access). Null se ainda não enriquecido.'),
+  mitreTechnique: z.string().nullable().describe('Técnica MITRE ATT&CK (ex: Exploit Public-Facing Application). Null se ainda não enriquecido.'),
+  mitreDescription: z.string().nullable().describe('Explicação curta da técnica MITRE ATT&CK em português (1 frase). Null se ainda não enriquecido.'),
+  compliance: z.array(z.object({
+    framework: z.string(),
+    reference: z.string(),
+    description: z.string().describe('Explicação curta do controle/artigo em português (1 frase)'),
+  })).nullable().describe('Frameworks de compliance violados. Null se ainda não enriquecido.'),
 });
 
 export const strideCategorySchema = z.object({
